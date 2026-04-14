@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -50,6 +51,41 @@ fun ProfileScreen(
         )
     }
 
+    if (uiState.isEditingName) {
+        AlertDialog(
+            onDismissRequest = viewModel::cancelEditName,
+            title = { Text("Edit Display Name", color = Color.White) },
+            text = {
+                OutlinedTextField(
+                    value = uiState.editNameBuffer,
+                    onValueChange = viewModel::updateNameBuffer,
+                    label = { Text("Display name") },
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = FormFitTeal,
+                        unfocusedBorderColor = SurfaceVariant,
+                        focusedLabelColor = FormFitTeal,
+                        unfocusedLabelColor = TextMuted,
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        cursorColor = FormFitTeal
+                    )
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = viewModel::saveDisplayName) {
+                    Text("Save", color = FormFitTeal)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::cancelEditName) {
+                    Text("Cancel", color = TextMuted)
+                }
+            },
+            containerColor = FormFitSurface
+        )
+    }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -82,7 +118,30 @@ fun ProfileScreen(
                     }
 
                     Spacer(Modifier.height(12.dp))
-                    Text(uiState.displayName.ifBlank { "Athlete" }, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.White)
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            uiState.displayName.ifBlank { "Athlete" },
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                        IconButton(
+                            onClick = viewModel::startEditingName,
+                            modifier = Modifier.size(28.dp)
+                        ) {
+                            Icon(
+                                Icons.Rounded.Edit,
+                                contentDescription = "Edit name",
+                                tint = TextMuted,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+
                     Text(uiState.email, fontSize = 13.sp, color = TextMuted)
 
                     Spacer(Modifier.height(12.dp))

@@ -18,10 +18,30 @@ serve(async (req) => {
   }
 
   try {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Missing authorization header" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const url = new URL(req.url);
     const priceId = url.searchParams.get("priceId") ?? "";
-    const userId = url.searchParams.get("userId") ?? "";
-
     if (!priceId) {
       return new Response(JSON.stringify({ error: "priceId is required" }), {
         status: 400,
@@ -29,35 +49,32 @@ serve(async (req) => {
       });
     }
 
-    const supabase = createClient(
+    const adminSupabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
     let stripeCustomerId: string | undefined;
 
-    if (userId) {
-      const { data: profile } = await supabase
+    const { data: profile } = await adminSupabase
+      .from("profiles")
+      .select("stripe_customer_id")
+      .eq("id", user.id)
+      .single();
+
+    if (profile?.stripe_customer_id) {
+      stripeCustomerId = profile.stripe_customer_id;
+    } else {
+      const customer = await stripe.customers.create({
+        email: user.email,
+        metadata: { supabase_user_id: user.id },
+      });
+      stripeCustomerId = customer.id;
+
+      await adminSupabase
         .from("profiles")
-        .select("stripe_customer_id")
-        .eq("id", userId)
-        .single();
-
-      if (profile?.stripe_customer_id) {
-        stripeCustomerId = profile.stripe_customer_id;
-      } else {
-        const { data: authUser } = await supabase.auth.admin.getUserById(userId);
-        const customer = await stripe.customers.create({
-          email: authUser?.user?.email,
-          metadata: { supabase_user_id: userId },
-        });
-        stripeCustomerId = customer.id;
-
-        await supabase
-          .from("profiles")
-          .update({ stripe_customer_id: customer.id })
-          .eq("id", userId);
-      }
+        .update({ stripe_customer_id: customer.id })
+        .eq("id", user.id);
     }
 
     const session = await stripe.checkout.sessions.create({
@@ -67,7 +84,7 @@ serve(async (req) => {
       mode: "subscription",
       success_url: `formfitai://subscription/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `formfitai://subscription/cancel`,
-      metadata: { supabase_user_id: userId },
+      metadata: { supabase_user_id: user.id },
     });
 
     return new Response(JSON.stringify({ url: session.url }), {

@@ -54,7 +54,8 @@ data class RoutineBuilderUiState(
     val exercises: List<RoutineExercise> = emptyList(),
     val isSaving: Boolean = false,
     val savedSuccessfully: Boolean = false,
-    val isPro: Boolean = false
+    val isPro: Boolean = false,
+    val showProPaywall: Boolean = false
 )
 
 @HiltViewModel
@@ -153,6 +154,10 @@ class RoutineBuilderViewModel @Inject constructor(
 
     fun saveRoutine(routineId: String) {
         val state = _uiState.value
+        if (!state.isPro) {
+            _uiState.update { it.copy(showProPaywall = true) }
+            return
+        }
         if (state.routineName.isBlank() || state.exercises.isEmpty()) return
 
         val estimatedMinutes = state.exercises.sumOf { it.sets * 2 + it.restSeconds / 60 }
@@ -173,6 +178,10 @@ class RoutineBuilderViewModel @Inject constructor(
             _uiState.update { it.copy(isSaving = false, savedSuccessfully = true) }
         }
     }
+
+    fun consumePaywallNavigation() {
+        _uiState.update { it.copy(showProPaywall = false) }
+    }
 }
 
 @Composable
@@ -191,6 +200,13 @@ fun RoutineBuilderScreen(
 
     LaunchedEffect(uiState.savedSuccessfully) {
         if (uiState.savedSuccessfully) onBack()
+    }
+
+    LaunchedEffect(uiState.showProPaywall) {
+        if (uiState.showProPaywall) {
+            viewModel.consumePaywallNavigation()
+            onNavigateToPlans()
+        }
     }
 
     Box(

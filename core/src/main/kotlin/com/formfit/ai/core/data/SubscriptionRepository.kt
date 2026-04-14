@@ -5,13 +5,22 @@ import com.formfit.ai.core.model.SubscriptionPlan
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.gotrue.auth
 import io.github.jan.supabase.postgrest.postgrest
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import java.io.IOException
+import java.net.HttpURLConnection
+import java.net.URL
 import javax.inject.Inject
 import javax.inject.Singleton
 
 private const val TAG = "SubscriptionRepository"
+private const val SUPABASE_URL = "https://tnjahnkoeziadabetlvx.supabase.co"
+private const val SUPABASE_ANON_KEY =
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRuamFobmtvZXppYWRhYmV0bHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxODAzMTcsImV4cCI6MjA5MTc1NjMxN30.FyNhQzf_jurZiFGWxdyDyojMroDpyO36BPRnQ378ops"
 
 @Singleton
 class SubscriptionRepository @Inject constructor(
@@ -45,18 +54,62 @@ class SubscriptionRepository @Inject constructor(
             Log.d(TAG, "Subscription refreshed: $plan")
         } catch (e: IllegalStateException) {
             Log.e(TAG, "Supabase client state error refreshing subscription: ${e.message}", e)
-        } catch (e: Exception) {
+        } catch (e: RuntimeException) {
             Log.e(TAG, "Failed to refresh subscription: ${e.javaClass.simpleName} — ${e.message}", e)
         }
     }
 
-    fun buildCheckoutUrl(priceId: String): String {
-        val supabaseUrl = "https://tnjahnkoeziadabetlvx.supabase.co"
-        return "$supabaseUrl/functions/v1/create-checkout-session?priceId=$priceId"
+    suspend fun createCheckoutSession(priceId: String): String {
+        val accessToken = supabaseClient.auth.currentSessionOrNull()?.accessToken
+            ?: throw IllegalStateException("Not authenticated — cannot start checkout")
+
+        return withContext(Dispatchers.IO) {
+            val endpoint = "$SUPABASE_URL/functions/v1/create-checkout-session?priceId=${java.net.URLEncoder.encode(priceId, "UTF-8")}"
+            val conn = URL(endpoint).openConnection() as HttpURLConnection
+            conn.connectTimeout = 20_000
+            conn.readTimeout = 20_000
+            conn.requestMethod = "GET"
+            conn.setRequestProperty("Authorization", "Bearer $accessToken")
+            conn.setRequestProperty("apikey", SUPABASE_ANON_KEY)
+            try {
+                val code = conn.responseCode
+                val body = if (code == 200) {
+                    conn.inputStream.bufferedReader().readText()
+                } else {
+                    val err = conn.errorStream?.bufferedReader()?.readText() ?: ""
+                    throw IOException("Checkout session request failed ($code): $err")
+                }
+                JSONObject(body).getString("url")
+            } finally {
+                conn.disconnect()
+            }
+        }
     }
 
-    fun buildPortalUrl(): String {
-        val supabaseUrl = "https://tnjahnkoeziadabetlvx.supabase.co"
-        return "$supabaseUrl/functions/v1/customer-portal"
+    suspend fun createPortalSession(): String {
+        val accessToken = supabaseClient.auth.currentSessionOrNull()?.accessToken
+            ?: throw IllegalStateException("Not authenticated — cannot open billing portal")
+
+        return withContext(Dispatchers.IO) {
+            val endpoint = "$SUPABASE_URL/functions/v1/customer-portal"
+            val conn = URL(endpoint).openConnection() as HttpURLConnection
+            conn.connectTimeout = 20_000
+            conn.readTimeout = 20_000
+            conn.requestMethod = "GET"
+            conn.setRequestProperty("Authorization", "Bearer $accessToken")
+            conn.setRequestProperty("apikey", SUPABASE_ANON_KEY)
+            try {
+                val code = conn.responseCode
+                val body = if (code == 200) {
+                    conn.inputStream.bufferedReader().readText()
+                } else {
+                    val err = conn.errorStream?.bufferedReader()?.readText() ?: ""
+                    throw IOException("Portal session request failed ($code): $err")
+                }
+                JSONObject(body).getString("url")
+            } finally {
+                conn.disconnect()
+            }
+        }
     }
 }

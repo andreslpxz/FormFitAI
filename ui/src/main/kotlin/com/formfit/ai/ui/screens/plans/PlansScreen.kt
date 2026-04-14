@@ -10,12 +10,10 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -34,8 +32,6 @@ import com.formfit.ai.core.data.SubscriptionRepository
 import com.formfit.ai.core.model.SubscriptionPlan
 import com.formfit.ai.ui.theme.*
 import dagger.hilt.android.lifecycle.HiltViewModel
-import io.github.jan.supabase.SupabaseClient
-import io.github.jan.supabase.gotrue.auth
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -52,15 +48,15 @@ data class PlansUiState(
     val currentPlan: SubscriptionPlan = SubscriptionPlan.FREE,
     val selectedBilling: BillingPeriod = BillingPeriod.MONTHLY,
     val isLoading: Boolean = false,
-    val checkoutUrl: String? = null
+    val pendingUrl: String? = null,
+    val errorMessage: String? = null
 )
 
 enum class BillingPeriod { MONTHLY, YEARLY }
 
 @HiltViewModel
 class PlansViewModel @Inject constructor(
-    private val subscriptionRepository: SubscriptionRepository,
-    private val supabaseClient: SupabaseClient
+    private val subscriptionRepository: SubscriptionRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PlansUiState())
@@ -79,23 +75,50 @@ class PlansViewModel @Inject constructor(
         _uiState.update { it.copy(selectedBilling = period) }
     }
 
-    fun startCheckout(): String {
+    fun requestCheckout() {
         val priceId = if (_uiState.value.selectedBilling == BillingPeriod.MONTHLY) {
             STRIPE_PRICE_MONTHLY
         } else {
             STRIPE_PRICE_YEARLY
         }
-        val userId = try {
-            supabaseClient.auth.currentUserOrNull()?.id ?: ""
-        } catch (e: IllegalStateException) {
-            Log.w(TAG, "Auth unavailable when starting checkout: ${e.message}")
-            ""
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            try {
+                val url = subscriptionRepository.createCheckoutSession(priceId)
+                _uiState.update { it.copy(isLoading = false, pendingUrl = url) }
+            } catch (e: IllegalStateException) {
+                Log.e(TAG, "Auth error starting checkout: ${e.message}", e)
+                _uiState.update { it.copy(isLoading = false, errorMessage = "Please sign in to continue.") }
+            } catch (e: Exception) {
+                Log.e(TAG, "Checkout session error: ${e.message}", e)
+                _uiState.update { it.copy(isLoading = false, errorMessage = "Could not start checkout. Please try again.") }
+            }
         }
-        val baseUrl = subscriptionRepository.buildCheckoutUrl(priceId)
-        return if (userId.isNotBlank()) "$baseUrl&userId=$userId" else baseUrl
     }
 
-    fun openBillingPortal(): String = subscriptionRepository.buildPortalUrl()
+    fun requestBillingPortal() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            try {
+                val url = subscriptionRepository.createPortalSession()
+                _uiState.update { it.copy(isLoading = false, pendingUrl = url) }
+            } catch (e: IllegalStateException) {
+                Log.e(TAG, "Auth error opening portal: ${e.message}", e)
+                _uiState.update { it.copy(isLoading = false, errorMessage = "Please sign in to manage billing.") }
+            } catch (e: Exception) {
+                Log.e(TAG, "Portal session error: ${e.message}", e)
+                _uiState.update { it.copy(isLoading = false, errorMessage = "Could not open billing portal. Please try again.") }
+            }
+        }
+    }
+
+    fun consumePendingUrl() {
+        _uiState.update { it.copy(pendingUrl = null) }
+    }
+
+    fun clearError() {
+        _uiState.update { it.copy(errorMessage = null) }
+    }
 }
 
 @Composable
@@ -106,12 +129,28 @@ fun PlansScreen(
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
 
-    fun openUrl(url: String) {
+    LaunchedEffect(uiState.pendingUrl) {
+        val url = uiState.pendingUrl ?: return@LaunchedEffect
         try {
             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to open URL $url: ${e.message}", e)
+            Log.e(TAG, "Failed to open URL: ${e.message}", e)
         }
+        viewModel.consumePendingUrl()
+    }
+
+    uiState.errorMessage?.let { msg ->
+        AlertDialog(
+            onDismissRequest = viewModel::clearError,
+            title = { Text("Checkout Unavailable", color = Color.White) },
+            text = { Text(msg, color = TextSecondary) },
+            confirmButton = {
+                TextButton(onClick = viewModel::clearError) {
+                    Text("OK", color = FormFitTeal)
+                }
+            },
+            containerColor = FormFitSurface
+        )
     }
 
     Box(
@@ -182,7 +221,8 @@ fun PlansScreen(
                 item {
                     ProActiveBanner(
                         plan = uiState.currentPlan,
-                        onManageBilling = { openUrl(viewModel.openBillingPortal()) }
+                        onManageBilling = viewModel::requestBillingPortal,
+                        isLoading = uiState.isLoading
                     )
                 }
             } else {
@@ -241,7 +281,8 @@ fun PlansScreen(
 
         if (!uiState.currentPlan.isPro()) {
             Button(
-                onClick = { openUrl(viewModel.startCheckout()) },
+                onClick = viewModel::requestCheckout,
+                enabled = !uiState.isLoading,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
@@ -253,14 +294,22 @@ fun PlansScreen(
                 ),
                 shape = RoundedCornerShape(16.dp)
             ) {
-                Text(
-                    if (uiState.selectedBilling == BillingPeriod.MONTHLY)
-                        "Start Pro — $9.99/month"
-                    else
-                        "Start Pro — $59.99/year  (save 50%)",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.ExtraBold
-                )
+                if (uiState.isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = FormFitNavy,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text(
+                        if (uiState.selectedBilling == BillingPeriod.MONTHLY)
+                            "Start Pro — $9.99/month"
+                        else
+                            "Start Pro — $59.99/year  (save 50%)",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.ExtraBold
+                    )
+                }
             }
         }
     }
@@ -466,7 +515,8 @@ private fun FeatureComparisonTable(modifier: Modifier = Modifier) {
 @Composable
 private fun ProActiveBanner(
     plan: SubscriptionPlan,
-    onManageBilling: () -> Unit
+    onManageBilling: () -> Unit,
+    isLoading: Boolean
 ) {
     Surface(
         modifier = Modifier
@@ -493,10 +543,19 @@ private fun ProActiveBanner(
             Spacer(Modifier.height(12.dp))
             OutlinedButton(
                 onClick = onManageBilling,
+                enabled = !isLoading,
                 border = androidx.compose.foundation.BorderStroke(1.dp, FormFitGreen.copy(0.5f)),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = FormFitGreen)
             ) {
-                Text("Manage Billing", fontSize = 14.sp)
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        color = FormFitGreen,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text("Manage Billing", fontSize = 14.sp)
+                }
             }
         }
     }
