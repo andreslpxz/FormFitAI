@@ -13,6 +13,10 @@ android {
         minSdk = 26
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
+
+        val googleClientId = project.findProperty("GOOGLE_WEB_CLIENT_ID")?.toString()
+            ?: "YOUR_GOOGLE_WEB_CLIENT_ID"
+        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"$googleClientId\"")
     }
 
     compileOptions {
@@ -30,6 +34,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     composeOptions {
@@ -65,6 +70,10 @@ dependencies {
     implementation(libs.camerax.view)
 
     implementation(libs.kotlinx.coroutines.android)
+
+    implementation(libs.credentials)
+    implementation(libs.credentials.play.services.auth)
+    implementation(libs.googleid)
 
     debugImplementation(libs.androidx.ui.tooling)
 }

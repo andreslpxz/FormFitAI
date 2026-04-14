@@ -9,6 +9,8 @@ import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import javax.inject.Singleton
 
+private const val DEEP_LINK_CALLBACK = "formfitai://auth/callback"
+
 @Singleton
 class AuthRepository @Inject constructor(
     private val supabaseClient: SupabaseClient,
@@ -92,6 +94,7 @@ class AuthRepository @Inject constructor(
     suspend fun sendMagicLink(email: String): Result<Unit> = try {
         supabaseClient.auth.signInWith(OTP) {
             this.email = email
+            this.redirectTo = DEEP_LINK_CALLBACK
         }
         Result.success(Unit)
     } catch (e: Exception) {
@@ -99,7 +102,10 @@ class AuthRepository @Inject constructor(
     }
 
     suspend fun sendPasswordReset(email: String): Result<Unit> = try {
-        supabaseClient.auth.resetPasswordForEmail(email)
+        supabaseClient.auth.resetPasswordForEmail(
+            email = email,
+            redirectUrl = DEEP_LINK_CALLBACK
+        )
         Result.success(Unit)
     } catch (e: Exception) {
         Result.failure(e)

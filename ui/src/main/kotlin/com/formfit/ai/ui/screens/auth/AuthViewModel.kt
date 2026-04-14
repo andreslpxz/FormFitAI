@@ -8,6 +8,7 @@ import androidx.credentials.exceptions.GetCredentialException
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.formfit.ai.core.data.AuthRepository
+import com.formfit.ai.ui.BuildConfig
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
@@ -67,7 +68,7 @@ class AuthViewModel @Inject constructor(
 
                 val googleIdOption = GetGoogleIdOption.Builder()
                     .setFilterByAuthorizedAccounts(false)
-                    .setServerClientId(GOOGLE_WEB_CLIENT_ID)
+                    .setServerClientId(BuildConfig.GOOGLE_WEB_CLIENT_ID)
                     .setNonce(hashedNonce)
                     .build()
 
@@ -119,7 +120,4 @@ class AuthViewModel @Inject constructor(
 
     fun clearError() = _uiState.update { it.copy(errorMessage = null) }
 
-    companion object {
-        const val GOOGLE_WEB_CLIENT_ID = "YOUR_GOOGLE_WEB_CLIENT_ID"
-    }
 }
