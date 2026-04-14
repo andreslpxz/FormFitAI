@@ -1,0 +1,41 @@
+# Android
+*.iml
+.gradle
+/local.properties
+/.idea
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# Module build outputs
+app/build/
+core/build/
+vision/build/
+ui/build/
+
+# Keystore files
+*.jks
+*.keystore
+
+# Node.js (preview server)
+node_modules/
+npm-debug.log*
+yarn-error.log
+
+# Deno
+.deno/
+lock.json
+
+# Environment
+.env
+.env.local
+
+# Gradle wrapper jar (commit this for Android projects)
+# gradle/wrapper/gradle-wrapper.jar
+
+# OS
+.DS_Store
+Thumbs.db

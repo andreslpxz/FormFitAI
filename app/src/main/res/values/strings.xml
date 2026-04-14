@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">FormFit AI</string>
+    <string name="app_tagline">Train smarter with proper form</string>
+
+    <string name="btn_continue">Continue</string>
+    <string name="btn_get_started">Get Started</string>
+    <string name="btn_sign_in">Sign In</string>
+    <string name="btn_sign_up">Create Account</string>
+    <string name="btn_sign_out">Sign Out</string>
+    <string name="btn_upgrade_pro">Upgrade to Pro</string>
+
+    <string name="nav_home">Home</string>
+    <string name="nav_workout">Train</string>
+    <string name="nav_progress">Progress</string>
+    <string name="nav_profile">Profile</string>
+
+    <string name="permission_camera_title">Camera Permission Required</string>
+    <string name="permission_camera_message">FormFit AI needs camera access to detect your pose and count reps in real-time.</string>
+    <string name="permission_camera_grant">Grant Permission</string>
+
+    <string name="error_generic">Something went wrong. Please try again.</string>
+    <string name="error_network">Check your internet connection.</string>
+
+    <string name="calibration_not_started">Stand in front of the camera</string>
+    <string name="calibration_too_close">Step back a bit</string>
+    <string name="calibration_too_far">Step closer to the camera</string>
+    <string name="calibration_move_left">Move slightly to the left</string>
+    <string name="calibration_move_right">Move slightly to the right</string>
+    <string name="calibration_ready">Perfect! You\'re ready to start</string>
+
+    <string name="form_good">Great form! Keep it up!</string>
+    <string name="form_warning">Watch your form</string>
+    <string name="form_error">Fix your form now</string>
+</resources>

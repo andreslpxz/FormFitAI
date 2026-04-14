@@ -1,0 +1,1 @@
+-keep class com.formfit.ai.core.model.** { *; }

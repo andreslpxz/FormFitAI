@@ -1,0 +1,16 @@
+{
+  "name": "formfit-ai",
+  "version": "1.0.0",
+  "description": "FormFit AI — Android fitness app with real-time AI pose detection",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": ["android", "fitness", "mediapipe", "kotlin", "jetpack-compose"],
+  "author": "FormFit AI",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}

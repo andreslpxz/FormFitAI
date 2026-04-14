@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="background">#0A0E1A</color>
+    <color name="surface">#111827</color>
+    <color name="formfit_green">#00E676</color>
+    <color name="formfit_navy">#0A0E1A</color>
+    <color name="white">#FFFFFF</color>
+    <color name="error_red">#FF5252</color>
+</resources>
