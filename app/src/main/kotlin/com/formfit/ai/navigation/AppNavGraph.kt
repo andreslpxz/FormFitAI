@@ -196,6 +196,9 @@ fun AppNavGraph(
                     navController.navigate(Routes.WorkoutSummary.createRoute(sessionId)) {
                         popUpTo(Routes.ActiveWorkout.route) { inclusive = true }
                     }
+                },
+                onNavigateToPlans = {
+                    navController.navigate(Routes.Plans.route)
                 }
             )
         }

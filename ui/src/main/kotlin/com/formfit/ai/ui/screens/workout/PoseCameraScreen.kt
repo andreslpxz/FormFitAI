@@ -48,6 +48,7 @@ fun PoseCameraScreen(
     exerciseId: String = "squats",
     onBack: () -> Unit = {},
     onWorkoutFinished: (Long) -> Unit = {},
+    onNavigateToPlans: () -> Unit = {},
     viewModel: PoseDetectionViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
@@ -105,6 +106,13 @@ fun PoseCameraScreen(
         uiState.savedSessionId?.let { id ->
             audioManager.playWorkoutComplete()
             onWorkoutFinished(id)
+        }
+    }
+
+    LaunchedEffect(uiState.weeklyLimitReached) {
+        if (uiState.weeklyLimitReached) {
+            viewModel.clearWeeklyLimitFlag()
+            onNavigateToPlans()
         }
     }
 

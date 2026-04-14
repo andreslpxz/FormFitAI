@@ -2,6 +2,7 @@ package com.formfit.ai.ui.screens.workout
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.formfit.ai.core.data.WeeklyLimitReachedException
 import com.formfit.ai.core.data.WorkoutRepository
 import com.formfit.ai.core.model.ExerciseLibrary
 import com.formfit.ai.core.model.WorkoutSession
@@ -37,7 +38,8 @@ data class PoseDetectionUiState(
     val repCounterState: RepCounterState = RepCounterState(),
     val formScoreAccumulator: Float = 0f,
     val formScoredFrames: Int = 0,
-    val savedSessionId: Long? = null
+    val savedSessionId: Long? = null,
+    val weeklyLimitReached: Boolean = false
 )
 
 @HiltViewModel
@@ -185,9 +187,19 @@ class PoseDetectionViewModel @Inject constructor(
                 setsCompleted = 1,
                 formIssues = state.formQuality.issues
             )
-            val savedId = workoutRepository.saveSession(session)
-            _uiState.update { it.copy(savedSessionId = savedId) }
+            try {
+                val savedId = workoutRepository.saveSession(session)
+                _uiState.update { it.copy(savedSessionId = savedId) }
+            } catch (e: WeeklyLimitReachedException) {
+                _uiState.update { it.copy(weeklyLimitReached = true) }
+            } catch (e: RuntimeException) {
+                android.util.Log.e("PoseDetectionVM", "Failed to save session: ${e.message}", e)
+            }
         }
+    }
+
+    fun clearWeeklyLimitFlag() {
+        _uiState.update { it.copy(weeklyLimitReached = false) }
     }
 
     fun setExercise(exerciseId: String) {

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.formfit.ai.core.data.AuthRepository
 import com.formfit.ai.core.data.PreferencesManager
 import com.formfit.ai.core.data.ProfileRepository
+import com.formfit.ai.core.data.SubscriptionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.jan.supabase.gotrue.SessionStatus
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,7 +28,8 @@ sealed class AppAuthState {
 class AppViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val profileRepository: ProfileRepository,
-    private val preferencesManager: PreferencesManager
+    private val preferencesManager: PreferencesManager,
+    private val subscriptionRepository: SubscriptionRepository
 ) : ViewModel() {
 
     val authState: StateFlow<AppAuthState> = authRepository.sessionStatusFlow
@@ -58,6 +60,7 @@ class AppViewModel @Inject constructor(
             authRepository.sessionStatusFlow.collect { status ->
                 if (status is SessionStatus.Authenticated) {
                     ensureProfileExists()
+                    subscriptionRepository.refreshSubscription()
                 }
             }
         }

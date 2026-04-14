@@ -5,17 +5,25 @@ import com.formfit.ai.core.model.SubscriptionPlan
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.gotrue.auth
 import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.postgrest.query.Columns
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import org.json.JSONObject
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 import javax.inject.Inject
 import javax.inject.Singleton
+
+@Serializable
+private data class ProfilePlanRow(
+    @SerialName("subscription_plan") val subscriptionPlan: String? = null
+)
 
 private const val TAG = "SubscriptionRepository"
 private const val SUPABASE_URL = "https://tnjahnkoeziadabetlvx.supabase.co"
@@ -38,12 +46,12 @@ class SubscriptionRepository @Inject constructor(
         }
         try {
             val row = supabaseClient.postgrest["profiles"]
-                .select {
+                .select(columns = Columns.list("subscription_plan")) {
                     filter { eq("id", userId) }
                 }
-                .decodeSingleOrNull<Map<String, String>>()
+                .decodeSingleOrNull<ProfilePlanRow>()
 
-            val planStr = row?.get("subscription_plan") ?: "free"
+            val planStr = row?.subscriptionPlan ?: "free"
             val plan = when (planStr) {
                 "pro_monthly" -> SubscriptionPlan.PRO_MONTHLY
                 "pro_yearly" -> SubscriptionPlan.PRO_YEARLY
