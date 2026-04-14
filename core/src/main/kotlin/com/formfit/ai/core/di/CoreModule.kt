@@ -6,8 +6,10 @@ import com.formfit.ai.core.data.AuthRepository
 import com.formfit.ai.core.data.FormFitSessionManager
 import com.formfit.ai.core.data.PreferencesManager
 import com.formfit.ai.core.data.ProfileRepository
+import com.formfit.ai.core.data.RoutineDao
 import com.formfit.ai.core.data.SupabaseClientFactory
 import com.formfit.ai.core.data.WorkoutDatabase
+import com.formfit.ai.core.data.WorkoutRepository
 import com.formfit.ai.core.data.WorkoutSessionDao
 import dagger.Module
 import dagger.Provides
@@ -48,12 +50,24 @@ object CoreModule {
             context,
             WorkoutDatabase::class.java,
             "formfit_database"
-        ).build()
+        ).fallbackToDestructiveMigration().build()
 
     @Provides
     @Singleton
     fun provideWorkoutSessionDao(database: WorkoutDatabase): WorkoutSessionDao =
         database.workoutSessionDao()
+
+    @Provides
+    @Singleton
+    fun provideRoutineDao(database: WorkoutDatabase): RoutineDao =
+        database.routineDao()
+
+    @Provides
+    @Singleton
+    fun provideWorkoutRepository(
+        workoutSessionDao: WorkoutSessionDao,
+        supabaseClient: SupabaseClient
+    ): WorkoutRepository = WorkoutRepository(workoutSessionDao, supabaseClient)
 
     @Provides
     @Singleton

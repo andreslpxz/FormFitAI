@@ -264,6 +264,142 @@ class PoseAnalysisManager {
         )
     }
 
+    fun analyzeShoulderPressForm(landmarks: List<NormalizedLandmark>): OverallFormQuality {
+        if (landmarks.isEmpty()) return OverallFormQuality.empty()
+
+        val segments = mutableListOf<SegmentQuality>()
+        val issues = mutableListOf<String>()
+        val suggestions = mutableListOf<String>()
+        var totalScore = 1.0f
+
+        val leftElbow = calculateElbowAngle(landmarks, BodySide.LEFT)
+        val rightElbow = calculateElbowAngle(landmarks, BodySide.RIGHT)
+
+        if (leftElbow < 70f || rightElbow < 70f) {
+            issues.add("Lower the weight further before pressing")
+            suggestions.add("Start with elbows at ~90°")
+            totalScore -= 0.2f
+        }
+
+        if (landmarks.size > PoseLandmarkIndex.RIGHT_HIP) {
+            val leftShoulder = landmarks[PoseLandmarkIndex.LEFT_SHOULDER]
+            val leftHip = landmarks[PoseLandmarkIndex.LEFT_HIP]
+            val backTilt = kotlin.math.abs(leftShoulder.x() - leftHip.x())
+            if (backTilt > 0.12f) {
+                issues.add("Avoid arching the lower back")
+                suggestions.add("Engage core and keep torso upright")
+                segments.add(SegmentQuality(
+                    PoseLandmarkIndex.LEFT_SHOULDER, PoseLandmarkIndex.LEFT_HIP,
+                    FormQualityLevel.WARNING, "Back arch detected"
+                ))
+                totalScore -= 0.2f
+            }
+        }
+
+        segments.add(SegmentQuality(PoseLandmarkIndex.LEFT_SHOULDER, PoseLandmarkIndex.LEFT_ELBOW,
+            if (leftElbow > 80f) FormQualityLevel.GOOD else FormQualityLevel.WARNING))
+        segments.add(SegmentQuality(PoseLandmarkIndex.RIGHT_SHOULDER, PoseLandmarkIndex.RIGHT_ELBOW,
+            if (rightElbow > 80f) FormQualityLevel.GOOD else FormQualityLevel.WARNING))
+
+        if (issues.isEmpty()) suggestions.add("Great shoulder press form!")
+        return OverallFormQuality(totalScore.coerceIn(0f, 1f), segments, issues, suggestions)
+    }
+
+    fun analyzePlankForm(landmarks: List<NormalizedLandmark>): OverallFormQuality {
+        if (landmarks.size < 33) return OverallFormQuality.empty()
+
+        val segments = mutableListOf<SegmentQuality>()
+        val issues = mutableListOf<String>()
+        val suggestions = mutableListOf<String>()
+        var totalScore = 1.0f
+
+        val leftShoulder = landmarks[PoseLandmarkIndex.LEFT_SHOULDER]
+        val leftHip = landmarks[PoseLandmarkIndex.LEFT_HIP]
+        val leftAnkle = landmarks[PoseLandmarkIndex.LEFT_ANKLE]
+
+        val hipSagAmount = leftHip.y() - ((leftShoulder.y() + leftAnkle.y()) / 2f)
+        if (hipSagAmount > 0.08f) {
+            issues.add("Hips are sagging — lift them up")
+            suggestions.add("Squeeze glutes and keep body in a straight line")
+            segments.add(SegmentQuality(
+                PoseLandmarkIndex.LEFT_SHOULDER, PoseLandmarkIndex.LEFT_HIP,
+                FormQualityLevel.ERROR, "Hip sag detected"
+            ))
+            totalScore -= 0.3f
+        } else if (hipSagAmount < -0.08f) {
+            issues.add("Hips are too high — lower them")
+            suggestions.add("Keep hips level with shoulders and ankles")
+            segments.add(SegmentQuality(
+                PoseLandmarkIndex.LEFT_SHOULDER, PoseLandmarkIndex.LEFT_HIP,
+                FormQualityLevel.WARNING, "Hips too high"
+            ))
+            totalScore -= 0.2f
+        } else {
+            segments.add(SegmentQuality(
+                PoseLandmarkIndex.LEFT_SHOULDER, PoseLandmarkIndex.LEFT_HIP,
+                FormQualityLevel.GOOD
+            ))
+        }
+
+        segments.add(SegmentQuality(
+            PoseLandmarkIndex.LEFT_HIP, PoseLandmarkIndex.LEFT_ANKLE,
+            if (kotlin.math.abs(hipSagAmount) <= 0.08f) FormQualityLevel.GOOD else FormQualityLevel.WARNING
+        ))
+
+        if (issues.isEmpty()) suggestions.add("Perfect plank position!")
+        return OverallFormQuality(totalScore.coerceIn(0f, 1f), segments, issues, suggestions)
+    }
+
+    fun analyzeFormForExercise(exerciseId: String, landmarks: List<NormalizedLandmark>): OverallFormQuality {
+        return when (exerciseId) {
+            "squats" -> analyzeSquatForm(landmarks)
+            "pushups" -> analyzePushupForm(landmarks)
+            "lunges" -> analyzeLungeForm(landmarks)
+            "bicep_curls" -> analyzeBicepCurlForm(landmarks)
+            "shoulder_press" -> analyzeShoulderPressForm(landmarks)
+            "plank" -> analyzePlankForm(landmarks)
+            else -> OverallFormQuality.perfect()
+        }
+    }
+
+    private fun analyzeBicepCurlForm(landmarks: List<NormalizedLandmark>): OverallFormQuality {
+        if (landmarks.isEmpty()) return OverallFormQuality.empty()
+
+        val segments = mutableListOf<SegmentQuality>()
+        val issues = mutableListOf<String>()
+        val suggestions = mutableListOf<String>()
+        var totalScore = 1.0f
+
+        val leftElbow = calculateElbowAngle(landmarks, BodySide.LEFT)
+        val rightElbow = calculateElbowAngle(landmarks, BodySide.RIGHT)
+
+        if (landmarks.size > PoseLandmarkIndex.RIGHT_ELBOW) {
+            val leftShoulderX = landmarks[PoseLandmarkIndex.LEFT_SHOULDER].x()
+            val leftElbowX = landmarks[PoseLandmarkIndex.LEFT_ELBOW].x()
+            val rightShoulderX = landmarks[PoseLandmarkIndex.RIGHT_SHOULDER].x()
+            val rightElbowX = landmarks[PoseLandmarkIndex.RIGHT_ELBOW].x()
+
+            if (kotlin.math.abs(leftElbowX - leftShoulderX) > 0.1f ||
+                kotlin.math.abs(rightElbowX - rightShoulderX) > 0.1f) {
+                issues.add("Keep elbows close to torso")
+                suggestions.add("Pin your elbows against your sides")
+                totalScore -= 0.2f
+            }
+        }
+
+        segments.add(SegmentQuality(PoseLandmarkIndex.LEFT_SHOULDER, PoseLandmarkIndex.LEFT_ELBOW,
+            FormQualityLevel.GOOD))
+        segments.add(SegmentQuality(PoseLandmarkIndex.LEFT_ELBOW, PoseLandmarkIndex.LEFT_WRIST,
+            if (leftElbow < 170f) FormQualityLevel.GOOD else FormQualityLevel.WARNING))
+        segments.add(SegmentQuality(PoseLandmarkIndex.RIGHT_SHOULDER, PoseLandmarkIndex.RIGHT_ELBOW,
+            FormQualityLevel.GOOD))
+        segments.add(SegmentQuality(PoseLandmarkIndex.RIGHT_ELBOW, PoseLandmarkIndex.RIGHT_WRIST,
+            if (rightElbow < 170f) FormQualityLevel.GOOD else FormQualityLevel.WARNING))
+
+        if (issues.isEmpty()) suggestions.add("Good bicep curl form!")
+        return OverallFormQuality(totalScore.coerceIn(0f, 1f), segments, issues, suggestions)
+    }
+
     fun checkCalibration(result: PoseLandmarkResult): CalibrationState {
         if (result.landmarks.size < 33) return CalibrationState.NOT_STARTED
 

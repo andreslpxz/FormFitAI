@@ -44,3 +44,7 @@ val SkeletonWhite = Color(0xCCFFFFFF)
 
 val GradientStart = Color(0xFF0A0E1A)
 val GradientEnd = Color(0xFF0D1F35)
+
+val FormFitTeal = Color(0xFF00BCD4)
+val FormFitTealDark = Color(0xFF0097A7)
+val SurfaceVariant = Color(0xFF1A2235)

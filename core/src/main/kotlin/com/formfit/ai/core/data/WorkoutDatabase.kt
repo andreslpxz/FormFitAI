@@ -5,18 +5,20 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverter
 import androidx.room.TypeConverters
 import com.formfit.ai.core.model.Routine
+import com.formfit.ai.core.model.RoutineExercise
 import com.formfit.ai.core.model.WorkoutSession
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 @Database(
-    entities = [WorkoutSession::class],
-    version = 1,
+    entities = [WorkoutSession::class, Routine::class],
+    version = 2,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
 abstract class WorkoutDatabase : RoomDatabase() {
     abstract fun workoutSessionDao(): WorkoutSessionDao
+    abstract fun routineDao(): RoutineDao
 }
 
 class Converters {
@@ -29,4 +31,13 @@ class Converters {
 
     @TypeConverter
     fun toStringList(list: List<String>): String = json.encodeToString(list)
+
+    @TypeConverter
+    fun fromRoutineExercises(value: String): List<RoutineExercise> =
+        if (value.isEmpty()) emptyList()
+        else json.decodeFromString(value)
+
+    @TypeConverter
+    fun toRoutineExercises(list: List<RoutineExercise>): String =
+        json.encodeToString(list)
 }

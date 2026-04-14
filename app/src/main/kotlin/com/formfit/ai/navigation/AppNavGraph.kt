@@ -6,13 +6,13 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
@@ -30,8 +30,12 @@ import com.formfit.ai.ui.screens.auth.LoginScreen
 import com.formfit.ai.ui.screens.auth.RegisterScreen
 import com.formfit.ai.ui.screens.main.MainScreen
 import com.formfit.ai.ui.screens.onboarding.OnboardingScreen
+import com.formfit.ai.ui.screens.routines.RoutineBuilderScreen
+import com.formfit.ai.ui.screens.routines.RoutinesScreen
 import com.formfit.ai.ui.screens.splash.SplashScreen
+import com.formfit.ai.ui.screens.workout.ExerciseDetailScreen
 import com.formfit.ai.ui.screens.workout.PoseCameraScreen
+import com.formfit.ai.ui.screens.workout.WorkoutSummaryScreen
 
 private val AUTH_ROUTES = setOf(
     Routes.Auth.route,
@@ -175,7 +179,13 @@ fun AppNavGraph(
             arguments = listOf(navArgument("exerciseId") { type = NavType.StringType })
         ) { backStackEntry ->
             val exerciseId = backStackEntry.arguments?.getString("exerciseId") ?: ""
-            PlaceholderScreen("Exercise Detail: $exerciseId")
+            ExerciseDetailScreen(
+                exerciseId = exerciseId,
+                onBack = { navController.popBackStack() },
+                onStartWorkout = { id ->
+                    navController.navigate(Routes.ActiveWorkout.createRoute(id))
+                }
+            )
         }
 
         composable(
@@ -185,37 +195,67 @@ fun AppNavGraph(
             val exerciseId = backStackEntry.arguments?.getString("exerciseId") ?: "squats"
             PoseCameraScreen(
                 exerciseId = exerciseId,
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                onWorkoutFinished = { sessionId ->
+                    navController.navigate(Routes.WorkoutSummary.createRoute(sessionId)) {
+                        popUpTo(Routes.ActiveWorkout.route) { inclusive = true }
+                    }
+                }
             )
         }
 
         composable(
             route = Routes.WorkoutSummary.route,
             arguments = listOf(navArgument("sessionId") { type = NavType.LongType })
-        ) {
-            PlaceholderScreen("Workout Summary")
+        ) { backStackEntry ->
+            val sessionId = backStackEntry.arguments?.getLong("sessionId") ?: 0L
+            WorkoutSummaryScreen(
+                sessionId = sessionId,
+                onGoHome = {
+                    navController.navigate(Routes.Main.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            )
         }
 
         composable(Routes.Routines.route) {
-            PlaceholderScreen("Routines")
+            RoutinesScreen(
+                onNavigateToRoutineBuilder = { routineId ->
+                    navController.navigate(Routes.RoutineBuilder.createRoute(routineId))
+                },
+                onStartRoutine = { exerciseId ->
+                    navController.navigate(Routes.ExerciseDetail.createRoute(exerciseId))
+                }
+            )
         }
 
         composable(
             route = Routes.RoutineBuilder.route,
             arguments = listOf(navArgument("routineId") { type = NavType.StringType })
-        ) {
-            PlaceholderScreen("Routine Builder")
+        ) { backStackEntry ->
+            val routineId = backStackEntry.arguments?.getString("routineId") ?: "new"
+            RoutineBuilderScreen(
+                routineId = routineId,
+                onBack = { navController.popBackStack() }
+            )
         }
 
         composable(Routes.Plans.route) {
-            PlaceholderScreen("Subscription Plans")
+            PlansPlaceholderScreen()
         }
     }
 }
 
 @Composable
-private fun PlaceholderScreen(label: String) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(text = label)
+private fun PlansPlaceholderScreen() {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = "Subscription Plans — Coming Soon",
+            color = Color.White
+        )
     }
 }

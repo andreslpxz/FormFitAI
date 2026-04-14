@@ -41,12 +41,19 @@ FormFitAI/
 
 - **60 FPS Pose Detection** — MediaPipe LIVE_STREAM mode with GPU Delegate/NNAPI
 - **33-Keypoint Skeleton Overlay** — Compose Canvas with color-coded limb feedback
-- **Rep Counting State Machine** — Per-exercise: IDLE → STANDING → DESCENDING → THRESHOLD_REACHED → ASCENDING → CONFIRMED
-- **Form Analysis** — Angle-based (atan2/law of cosines) per-joint quality assessment
+- **Rep Counting (6 exercises)** — Squats, Push-ups, Lunges, Bicep Curls, Shoulder Press, Plank — each with full IDLE→CONFIRMED state machine
+- **Shoulder Press** — ASCENDING→THRESHOLD_REACHED→DESCENDING→CONFIRMED cycle
+- **Plank** — Hold-60-frames detection with progress indicator
+- **Form Analysis** — Angle-based (atan2/law of cosines) per-joint quality assessment; unified `analyzeFormForExercise()` dispatch
+- **Audio & Haptics** — ToneGenerator rep beep, form warning ACK tone, completion fanfare; Vibrator haptics per rep
+- **Active Workout UI** — Animated rep counter (spring scale flash), mm:ss chronometer, real-time form feedback panel, Start/Finish buttons
+- **Workout Summary** — Post-session stats: reps, duration, calories, form score % + color-coded grade
+- **Exercise Detail Screen** — Description, muscle groups, form tips, difficulty chip, start CTA
+- **Routines** — Browse preset routines (Beginner Full Body, Upper Body Blast, Leg Day) + user-created custom routines
+- **Routine Builder** — Add/remove exercises, configure sets/reps/rest per exercise with steppers
 - **Auto-calibration** — Detects user distance and centering before workout starts
 - **Supabase Auth** — Google OAuth, Email/Password, Magic Link, password reset
-- **Custom Routines** — Build and save custom workout routines
-- **Progress Tracking** — Workout history, personal bests, form scores in Room DB + Supabase
+- **Progress Tracking** — Workout history, personal bests, form scores in Room DB + Supabase sync
 - **Stripe Plans** — Free tier (3 workouts/week) + Pro ($9.99/mo or $59.99/yr)
 - **Onboarding Survey** — 6-step personalization flow (name, gender, goal, frequency, equipment, referral)
 
