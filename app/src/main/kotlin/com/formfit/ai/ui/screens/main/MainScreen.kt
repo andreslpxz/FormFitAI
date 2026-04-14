@@ -11,9 +11,9 @@ import androidx.navigation.compose.rememberNavController
 import com.formfit.ai.navigation.FormFitBottomNav
 import com.formfit.ai.navigation.Routes
 import com.formfit.ai.ui.screens.home.HomeScreen
-import com.formfit.ai.ui.screens.workout.WorkoutScreen
-import com.formfit.ai.ui.screens.progress.ProgressScreen
 import com.formfit.ai.ui.screens.profile.ProfileScreen
+import com.formfit.ai.ui.screens.progress.ProgressScreen
+import com.formfit.ai.ui.screens.workout.WorkoutScreen
 
 @Composable
 fun MainScreen(rootNavController: NavHostController) {
@@ -47,7 +47,11 @@ fun MainScreen(rootNavController: NavHostController) {
                 )
             }
             composable(Routes.Progress.route) {
-                ProgressScreen()
+                ProgressScreen(
+                    onNavigateToPlans = {
+                        rootNavController.navigate(Routes.Plans.route)
+                    }
+                )
             }
             composable(Routes.Profile.route) {
                 ProfileScreen(

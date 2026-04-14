@@ -30,6 +30,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.formfit.ai.core.data.RoutineDao
+import com.formfit.ai.core.data.SubscriptionRepository
 import com.formfit.ai.core.model.Difficulty
 import com.formfit.ai.core.model.ExerciseLibrary
 import com.formfit.ai.core.model.Routine
@@ -52,16 +53,26 @@ data class RoutineBuilderUiState(
     val routineDescription: String = "",
     val exercises: List<RoutineExercise> = emptyList(),
     val isSaving: Boolean = false,
-    val savedSuccessfully: Boolean = false
+    val savedSuccessfully: Boolean = false,
+    val isPro: Boolean = false
 )
 
 @HiltViewModel
 class RoutineBuilderViewModel @Inject constructor(
-    private val routineDao: RoutineDao
+    private val routineDao: RoutineDao,
+    private val subscriptionRepository: SubscriptionRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(RoutineBuilderUiState())
     val uiState: StateFlow<RoutineBuilderUiState> = _uiState.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            subscriptionRepository.subscriptionPlan.collect { plan ->
+                _uiState.update { it.copy(isPro = plan.isPro()) }
+            }
+        }
+    }
 
     fun loadRoutine(routineId: String) {
         if (routineId == "new") return
@@ -168,6 +179,7 @@ class RoutineBuilderViewModel @Inject constructor(
 fun RoutineBuilderScreen(
     routineId: String,
     onBack: () -> Unit,
+    onNavigateToPlans: () -> Unit = {},
     viewModel: RoutineBuilderViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -190,6 +202,50 @@ fun RoutineBuilderScreen(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(bottom = 100.dp)
         ) {
+            if (!uiState.isPro) {
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                            .background(
+                                color = Color(0xFF1A3040),
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            .clickable { onNavigateToPlans() }
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Custom Routines — Pro Feature",
+                                color = FormFitTeal,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "Upgrade to Pro to save unlimited custom routines.",
+                                color = TextMuted,
+                                fontSize = 12.sp
+                            )
+                        }
+                        Text(
+                            text = "Upgrade",
+                            color = FormFitTeal,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier
+                                .background(
+                                    color = Color(0xFF003344),
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                        )
+                    }
+                }
+            }
+
             item {
                 Row(
                     modifier = Modifier

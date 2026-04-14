@@ -42,4 +42,22 @@ interface WorkoutSessionDao {
 
     @Query("SELECT * FROM workout_sessions ORDER BY created_at DESC LIMIT 7")
     fun getRecentSessions(): Flow<List<WorkoutSession>>
+
+    @Query("SELECT * FROM workout_sessions WHERE created_at >= :startMs AND created_at <= :endMs ORDER BY created_at ASC")
+    fun getSessionsByDateRange(startMs: Long, endMs: Long): Flow<List<WorkoutSession>>
+
+    @Query("SELECT * FROM workout_sessions ORDER BY created_at DESC LIMIT 30")
+    fun getLast30Sessions(): Flow<List<WorkoutSession>>
+
+    @Query("""
+        SELECT exercise_id, exercise_name, AVG(avg_form_score) as avg_form_score,
+               MAX(rep_count) as rep_count, SUM(calories_burned) as calories_burned,
+               MAX(duration_seconds) as duration_seconds, MAX(sets_completed) as sets_completed,
+               form_issues, synced_to_cloud, MAX(created_at) as created_at, id, user_id
+        FROM workout_sessions
+        GROUP BY exercise_id
+        ORDER BY avg_form_score DESC
+        LIMIT 6
+    """)
+    fun getFormScoreByExercise(): Flow<List<WorkoutSession>>
 }

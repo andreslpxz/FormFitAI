@@ -3,8 +3,11 @@ package com.formfit.ai.core.di
 import android.content.Context
 import androidx.room.Room
 import com.formfit.ai.core.data.AuthRepository
+import com.formfit.ai.core.data.BodyWeightDao
 import com.formfit.ai.core.data.MIGRATION_1_2
+import com.formfit.ai.core.data.MIGRATION_2_3
 import com.formfit.ai.core.data.FormFitSessionManager
+import com.formfit.ai.core.data.SubscriptionRepository
 import com.formfit.ai.core.data.PreferencesManager
 import com.formfit.ai.core.data.ProfileRepository
 import com.formfit.ai.core.data.RoutineDao
@@ -52,7 +55,7 @@ object CoreModule {
             WorkoutDatabase::class.java,
             "formfit_database"
         )
-            .addMigrations(MIGRATION_1_2)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
             .build()
 
     @Provides
@@ -64,6 +67,17 @@ object CoreModule {
     @Singleton
     fun provideRoutineDao(database: WorkoutDatabase): RoutineDao =
         database.routineDao()
+
+    @Provides
+    @Singleton
+    fun provideBodyWeightDao(database: WorkoutDatabase): BodyWeightDao =
+        database.bodyWeightDao()
+
+    @Provides
+    @Singleton
+    fun provideSubscriptionRepository(
+        supabaseClient: SupabaseClient
+    ): SubscriptionRepository = SubscriptionRepository(supabaseClient)
 
     @Provides
     @Singleton

@@ -4,6 +4,7 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverter
 import androidx.room.TypeConverters
+import com.formfit.ai.core.model.BodyWeightEntry
 import com.formfit.ai.core.model.Routine
 import com.formfit.ai.core.model.RoutineExercise
 import com.formfit.ai.core.model.WorkoutSession
@@ -11,14 +12,15 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 @Database(
-    entities = [WorkoutSession::class, Routine::class],
-    version = 2,
+    entities = [WorkoutSession::class, Routine::class, BodyWeightEntry::class],
+    version = 3,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
 abstract class WorkoutDatabase : RoomDatabase() {
     abstract fun workoutSessionDao(): WorkoutSessionDao
     abstract fun routineDao(): RoutineDao
+    abstract fun bodyWeightDao(): BodyWeightDao
 }
 
 class Converters {
