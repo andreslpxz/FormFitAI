@@ -1,27 +1,31 @@
 package com.formfit.ai.ui.screens.routines
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.ArrowDownward
-import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.DragHandle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -39,6 +43,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.UUID
 import javax.inject.Inject
+import kotlin.math.roundToInt
+
+private const val TAG = "RoutineBuilderScreen"
 
 data class RoutineBuilderUiState(
     val routineName: String = "",
@@ -95,6 +102,17 @@ class RoutineBuilderViewModel @Inject constructor(
         }
     }
 
+    fun reorderExercise(fromIndex: Int, toIndex: Int) {
+        if (fromIndex == toIndex) return
+        _uiState.update { state ->
+            val list = state.exercises.toMutableList()
+            val item = list.removeAt(fromIndex)
+            val clampedTo = toIndex.coerceIn(0, list.size)
+            list.add(clampedTo, item)
+            state.copy(exercises = list.mapIndexed { i, ex -> ex.copy(order = i) })
+        }
+    }
+
     fun updateExerciseSets(index: Int, sets: Int) {
         _uiState.update { state ->
             val updated = state.exercises.toMutableList().apply {
@@ -117,30 +135,6 @@ class RoutineBuilderViewModel @Inject constructor(
         _uiState.update { state ->
             val updated = state.exercises.toMutableList().apply {
                 this[index] = this[index].copy(restSeconds = restSeconds.coerceIn(0, 300))
-            }
-            state.copy(exercises = updated)
-        }
-    }
-
-    fun moveExerciseUp(index: Int) {
-        if (index <= 0) return
-        _uiState.update { state ->
-            val updated = state.exercises.toMutableList().also { list ->
-                val temp = list[index - 1]
-                list[index - 1] = list[index].copy(order = index - 1)
-                list[index] = temp.copy(order = index)
-            }
-            state.copy(exercises = updated)
-        }
-    }
-
-    fun moveExerciseDown(index: Int) {
-        _uiState.update { state ->
-            if (index >= state.exercises.size - 1) return@update state
-            val updated = state.exercises.toMutableList().also { list ->
-                val temp = list[index + 1]
-                list[index + 1] = list[index].copy(order = index + 1)
-                list[index] = temp.copy(order = index)
             }
             state.copy(exercises = updated)
         }
@@ -252,19 +246,33 @@ fun RoutineBuilderScreen(
                         )
                     )
                     Spacer(Modifier.height(20.dp))
-                    Text("Exercises", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text("Exercises", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        if (uiState.exercises.isNotEmpty()) {
+                            Text(
+                                "(long-press to drag · reorder)",
+                                color = TextMuted,
+                                fontSize = 11.sp
+                            )
+                        }
+                    }
                     Spacer(Modifier.height(8.dp))
                 }
             }
 
-            itemsIndexed(uiState.exercises) { index, exercise ->
-                ExerciseBuilderRow(
+            itemsIndexed(
+                items = uiState.exercises,
+                key = { _, exercise -> exercise.order }
+            ) { index, exercise ->
+                DraggableExerciseRow(
                     exercise = exercise,
                     index = index,
-                    total = uiState.exercises.size,
+                    totalCount = uiState.exercises.size,
+                    onReorder = { from, to -> viewModel.reorderExercise(from, to) },
                     onRemove = { viewModel.removeExercise(index) },
-                    onMoveUp = { viewModel.moveExerciseUp(index) },
-                    onMoveDown = { viewModel.moveExerciseDown(index) },
                     onSetsChange = { viewModel.updateExerciseSets(index, it) },
                     onRepsChange = { viewModel.updateExerciseReps(index, it) },
                     onRestChange = { viewModel.updateExerciseRest(index, it) }
@@ -316,57 +324,72 @@ fun RoutineBuilderScreen(
 }
 
 @Composable
-private fun ExerciseBuilderRow(
+private fun DraggableExerciseRow(
     exercise: RoutineExercise,
     index: Int,
-    total: Int,
+    totalCount: Int,
+    onReorder: (from: Int, to: Int) -> Unit,
     onRemove: () -> Unit,
-    onMoveUp: () -> Unit,
-    onMoveDown: () -> Unit,
     onSetsChange: (Int) -> Unit,
     onRepsChange: (Int) -> Unit,
     onRestChange: (Int) -> Unit
 ) {
+    var isDragging by remember { mutableStateOf(false) }
+    var dragOffsetY by remember { mutableStateOf(0f) }
+    var itemHeightPx by remember { mutableIntStateOf(1) }
+
+    val elevation = if (isDragging) 8.dp else 0.dp
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp)
-            .background(SurfaceVariant, RoundedCornerShape(16.dp))
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .offset { IntOffset(0, if (isDragging) dragOffsetY.roundToInt() else 0) }
+            .zIndex(if (isDragging) 1f else 0f)
+            .shadow(elevation, RoundedCornerShape(16.dp))
+            .background(
+                if (isDragging) SurfaceVariant.copy(alpha = 0.95f) else SurfaceVariant,
+                RoundedCornerShape(16.dp)
+            )
+            .onGloballyPositioned { coords -> itemHeightPx = coords.size.height.coerceAtLeast(1) }
             .padding(16.dp)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(
-                modifier = Modifier.size(32.dp),
-                verticalArrangement = Arrangement.spacedBy(0.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                IconButton(
-                    onClick = onMoveUp,
-                    enabled = index > 0,
-                    modifier = Modifier.size(16.dp)
-                ) {
-                    Icon(
-                        Icons.Rounded.ArrowUpward,
-                        contentDescription = "Move up",
-                        tint = if (index > 0) FormFitTeal else TextMuted.copy(alpha = 0.3f),
-                        modifier = Modifier.size(14.dp)
-                    )
-                }
-                IconButton(
-                    onClick = onMoveDown,
-                    enabled = index < total - 1,
-                    modifier = Modifier.size(16.dp)
-                ) {
-                    Icon(
-                        Icons.Rounded.ArrowDownward,
-                        contentDescription = "Move down",
-                        tint = if (index < total - 1) FormFitTeal else TextMuted.copy(alpha = 0.3f),
-                        modifier = Modifier.size(14.dp)
-                    )
-                }
-            }
+            Icon(
+                imageVector = Icons.Rounded.DragHandle,
+                contentDescription = "Drag to reorder",
+                tint = TextMuted,
+                modifier = Modifier
+                    .size(22.dp)
+                    .pointerInput(index) {
+                        detectDragGesturesAfterLongPress(
+                            onDragStart = {
+                                isDragging = true
+                                dragOffsetY = 0f
+                                Log.d(TAG, "Started dragging exercise at index $index")
+                            },
+                            onDrag = { _, dragAmount ->
+                                dragOffsetY += dragAmount.y
+                            },
+                            onDragEnd = {
+                                val delta = (dragOffsetY / itemHeightPx).roundToInt()
+                                val targetIndex = (index + delta).coerceIn(0, totalCount - 1)
+                                if (targetIndex != index) {
+                                    Log.d(TAG, "Reordering exercise from $index to $targetIndex")
+                                    onReorder(index, targetIndex)
+                                }
+                                isDragging = false
+                                dragOffsetY = 0f
+                            },
+                            onDragCancel = {
+                                isDragging = false
+                                dragOffsetY = 0f
+                            }
+                        )
+                    }
+            )
             Spacer(Modifier.width(8.dp))
             Text(
                 text = exercise.exerciseName,
@@ -375,8 +398,19 @@ private fun ExerciseBuilderRow(
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.weight(1f)
             )
+            Text(
+                text = "${index + 1}",
+                color = TextMuted,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(end = 4.dp)
+            )
             IconButton(onClick = onRemove, modifier = Modifier.size(24.dp)) {
-                Icon(Icons.Rounded.Close, contentDescription = "Remove", tint = TextMuted, modifier = Modifier.size(16.dp))
+                Icon(
+                    Icons.Rounded.Close,
+                    contentDescription = "Remove",
+                    tint = TextMuted,
+                    modifier = Modifier.size(16.dp)
+                )
             }
         }
         Spacer(Modifier.height(8.dp))
@@ -473,8 +507,17 @@ private fun ExercisePickerDialog(
                     ) {
                         Text(text = exercise.category.emoji(), fontSize = 20.sp)
                         Column {
-                            Text(text = exercise.name, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                            Text(text = exercise.difficulty.label(), color = TextMuted, fontSize = 11.sp)
+                            Text(
+                                text = exercise.name,
+                                color = Color.White,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                text = exercise.difficulty.label(),
+                                color = TextMuted,
+                                fontSize = 11.sp
+                            )
                         }
                     }
                     HorizontalDivider(color = FormFitNavy.copy(alpha = 0.5f), thickness = 0.5.dp)
