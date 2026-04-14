@@ -3,6 +3,7 @@ package com.formfit.ai.core.di
 import android.content.Context
 import androidx.room.Room
 import com.formfit.ai.core.data.AuthRepository
+import com.formfit.ai.core.data.MIGRATION_1_2
 import com.formfit.ai.core.data.FormFitSessionManager
 import com.formfit.ai.core.data.PreferencesManager
 import com.formfit.ai.core.data.ProfileRepository
@@ -50,7 +51,9 @@ object CoreModule {
             context,
             WorkoutDatabase::class.java,
             "formfit_database"
-        ).fallbackToDestructiveMigration().build()
+        )
+            .addMigrations(MIGRATION_1_2)
+            .build()
 
     @Provides
     @Singleton

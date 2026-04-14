@@ -31,6 +31,7 @@ import com.formfit.ai.ui.screens.auth.RegisterScreen
 import com.formfit.ai.ui.screens.main.MainScreen
 import com.formfit.ai.ui.screens.onboarding.OnboardingScreen
 import com.formfit.ai.ui.screens.routines.RoutineBuilderScreen
+import com.formfit.ai.ui.screens.routines.RoutineSessionScreen
 import com.formfit.ai.ui.screens.routines.RoutinesScreen
 import com.formfit.ai.ui.screens.splash.SplashScreen
 import com.formfit.ai.ui.screens.workout.ExerciseDetailScreen
@@ -224,8 +225,27 @@ fun AppNavGraph(
                 onNavigateToRoutineBuilder = { routineId ->
                     navController.navigate(Routes.RoutineBuilder.createRoute(routineId))
                 },
-                onStartRoutine = { exerciseId ->
-                    navController.navigate(Routes.ExerciseDetail.createRoute(exerciseId))
+                onStartRoutine = { routineId ->
+                    navController.navigate(Routes.RoutineSession.createRoute(routineId))
+                }
+            )
+        }
+
+        composable(
+            route = Routes.RoutineSession.route,
+            arguments = listOf(navArgument("routineId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val routineId = backStackEntry.arguments?.getString("routineId") ?: return@composable
+            RoutineSessionScreen(
+                routineId = routineId,
+                onBack = { navController.popBackStack() },
+                onStartExercise = { exerciseId ->
+                    navController.navigate(Routes.ActiveWorkout.createRoute(exerciseId))
+                },
+                onRoutineComplete = {
+                    navController.navigate(Routes.Main.route) {
+                        popUpTo(Routes.Routines.route) { inclusive = false }
+                    }
                 }
             )
         }

@@ -86,7 +86,7 @@ fun RoutinesScreen(
             items(PresetRoutines) { routine ->
                 RoutineCard(
                     routine = routine,
-                    onClick = { onStartRoutine(routine.exercises.firstOrNull()?.exerciseId ?: "squats") }
+                    onClick = { onStartRoutine(routine.id) }
                 )
             }
 
@@ -97,7 +97,7 @@ fun RoutinesScreen(
                 items(userRoutines) { routine ->
                     RoutineCard(
                         routine = routine,
-                        onClick = { onStartRoutine(routine.exercises.firstOrNull()?.exerciseId ?: "squats") },
+                        onClick = { onStartRoutine(routine.id) },
                         onEdit = { onNavigateToRoutineBuilder(routine.id) }
                     )
                 }

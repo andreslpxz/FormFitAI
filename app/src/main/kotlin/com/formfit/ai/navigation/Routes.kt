@@ -25,6 +25,9 @@ sealed class Routes(val route: String) {
         fun createRoute(sessionId: Long) = "workout_summary/$sessionId"
     }
     object Routines : Routes("routines")
+    object RoutineSession : Routes("routine_session/{routineId}") {
+        fun createRoute(routineId: String) = "routine_session/$routineId"
+    }
     object RoutineBuilder : Routes("routine_builder/{routineId}") {
         fun createRoute(routineId: String = "new") = "routine_builder/$routineId"
     }
