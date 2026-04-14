@@ -1,6 +1,10 @@
 package com.formfit.ai.vision
 
 import android.content.Context
+import android.hardware.camera2.CaptureRequest
+import android.util.Range
+import androidx.camera.camera2.interop.Camera2Interop
+import androidx.camera.camera2.interop.ExperimentalCamera2Interop
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
@@ -9,18 +13,14 @@ import androidx.camera.core.resolutionselector.ResolutionSelector
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.lifecycle.LifecycleOwner
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class CameraManager @Inject constructor(
-    @ApplicationContext private val context: Context,
+class CameraManager(
+    private val context: Context,
     private val poseLandmarkerHelper: PoseLandmarkerHelper
 ) {
     private var cameraExecutor: ExecutorService = Executors.newSingleThreadExecutor()
@@ -41,6 +41,7 @@ class CameraManager @Inject constructor(
         }, androidx.core.content.ContextCompat.getMainExecutor(context))
     }
 
+    @androidx.annotation.OptIn(ExperimentalCamera2Interop::class)
     private fun bindCameraUseCases(lifecycleOwner: LifecycleOwner, previewView: PreviewView) {
         val provider = cameraProvider ?: return
 
@@ -53,12 +54,19 @@ class CameraManager @Inject constructor(
             .build()
             .also { it.surfaceProvider = previewView.surfaceProvider }
 
-        val imageAnalyzer = ImageAnalysis.Builder()
+        val imageAnalysisBuilder = ImageAnalysis.Builder()
             .setResolutionSelector(resolutionSelector)
             .setTargetRotation(previewView.display?.rotation ?: 0)
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
             .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
-            .build()
+
+        Camera2Interop.Extender(imageAnalysisBuilder)
+            .setCaptureRequestOption(
+                CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
+                Range(60, 60)
+            )
+
+        val imageAnalyzer = imageAnalysisBuilder.build()
             .also { analysis ->
                 analysis.setAnalyzer(cameraExecutor) { imageProxy ->
                     poseLandmarkerHelper.detectAsync(imageProxy)

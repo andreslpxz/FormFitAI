@@ -9,8 +9,6 @@ import com.formfit.ai.vision.model.PoseLandmarkIndex
 import com.formfit.ai.vision.model.PoseLandmarkResult
 import com.formfit.ai.vision.model.SegmentQuality
 import com.google.mediapipe.tasks.components.containers.NormalizedLandmark
-import javax.inject.Inject
-import javax.inject.Singleton
 import kotlin.math.abs
 import kotlin.math.acos
 import kotlin.math.atan2
@@ -19,8 +17,7 @@ import kotlin.math.min
 import kotlin.math.pow
 import kotlin.math.sqrt
 
-@Singleton
-class PoseAnalysisManager @Inject constructor() {
+class PoseAnalysisManager {
 
     fun calculateAngle(
         a: NormalizedLandmark,
@@ -268,21 +265,46 @@ class PoseAnalysisManager @Inject constructor() {
     }
 
     fun checkCalibration(result: PoseLandmarkResult): CalibrationState {
-        if (result.landmarks.isEmpty()) return CalibrationState.NOT_STARTED
+        if (result.landmarks.size < 33) return CalibrationState.NOT_STARTED
 
         val landmarks = result.landmarks
 
-        if (landmarks.size <= PoseLandmarkIndex.LEFT_ANKLE) return CalibrationState.NOT_STARTED
+        val VISIBILITY_THRESHOLD = 0.5f
 
-        val topY = landmarks[PoseLandmarkIndex.NOSE].y()
-        val bottomY = landmarks[PoseLandmarkIndex.LEFT_ANKLE].y()
+        val topCandidates = listOf(
+            PoseLandmarkIndex.NOSE,
+            PoseLandmarkIndex.LEFT_EYE_INNER,
+            PoseLandmarkIndex.RIGHT_EYE_INNER
+        ).filter { idx ->
+            landmarks[idx].visibility().orElse(0f) > VISIBILITY_THRESHOLD
+        }
+
+        val bottomCandidates = listOf(
+            PoseLandmarkIndex.LEFT_ANKLE,
+            PoseLandmarkIndex.RIGHT_ANKLE,
+            PoseLandmarkIndex.LEFT_HEEL,
+            PoseLandmarkIndex.RIGHT_HEEL
+        ).filter { idx ->
+            landmarks[idx].visibility().orElse(0f) > VISIBILITY_THRESHOLD
+        }
+
+        if (topCandidates.isEmpty() || bottomCandidates.isEmpty()) {
+            return CalibrationState.NOT_STARTED
+        }
+
+        val topY = topCandidates.minOf { landmarks[it].y() }
+        val bottomY = bottomCandidates.maxOf { landmarks[it].y() }
         val bodyHeight = bottomY - topY
 
-        if (bodyHeight < 0.4f) return CalibrationState.TOO_CLOSE
-        if (bodyHeight < 0.55f) return CalibrationState.TOO_FAR
+        when {
+            bodyHeight > 0.88f -> return CalibrationState.TOO_CLOSE
+            bodyHeight < 0.45f -> return CalibrationState.TOO_FAR
+        }
 
-        val centerX = (landmarks[PoseLandmarkIndex.LEFT_SHOULDER].x() +
-                landmarks[PoseLandmarkIndex.RIGHT_SHOULDER].x()) / 2f
+        val leftShoulder = landmarks[PoseLandmarkIndex.LEFT_SHOULDER]
+        val rightShoulder = landmarks[PoseLandmarkIndex.RIGHT_SHOULDER]
+        val centerX = (leftShoulder.x() + rightShoulder.x()) / 2f
+
         if (centerX < 0.35f) return CalibrationState.MOVE_RIGHT
         if (centerX > 0.65f) return CalibrationState.MOVE_LEFT
 

@@ -12,16 +12,12 @@ import com.google.mediapipe.tasks.core.Delegate
 import com.google.mediapipe.tasks.vision.core.RunningMode
 import com.google.mediapipe.tasks.vision.poselandmarker.PoseLandmarker
 import com.google.mediapipe.tasks.vision.poselandmarker.PoseLandmarkerResult
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class PoseLandmarkerHelper @Inject constructor(
-    @ApplicationContext private val context: Context
+class PoseLandmarkerHelper(
+    private val context: Context
 ) {
     companion object {
         const val MODEL_POSE_LANDMARKER_FULL = "pose_landmarker_full.task"
@@ -47,18 +43,27 @@ class PoseLandmarkerHelper @Inject constructor(
         minPoseTrackingConfidence: Float = DEFAULT_POSE_TRACKING_CONFIDENCE,
         minPosePresenceConfidence: Float = DEFAULT_POSE_PRESENCE_CONFIDENCE
     ) {
-        poseLandmarker = tryCreateWithDelegate(
-            Delegate.GPU,
-            minPoseDetectionConfidence,
-            minPoseTrackingConfidence,
-            minPosePresenceConfidence
-        ) ?: tryCreateWithDelegate(
-            Delegate.CPU,
+        poseLandmarker = buildDelegateChain(
             minPoseDetectionConfidence,
             minPoseTrackingConfidence,
             minPosePresenceConfidence
         )
         _isRunning.value = poseLandmarker != null
+    }
+
+    private fun buildDelegateChain(
+        detectionConf: Float,
+        trackingConf: Float,
+        presenceConf: Float
+    ): PoseLandmarker? {
+        val gpuResult = tryCreateWithDelegate(
+            Delegate.GPU, detectionConf, trackingConf, presenceConf
+        )
+        if (gpuResult != null) return gpuResult
+
+        return tryCreateWithDelegate(
+            Delegate.CPU, detectionConf, trackingConf, presenceConf
+        )
     }
 
     private fun tryCreateWithDelegate(

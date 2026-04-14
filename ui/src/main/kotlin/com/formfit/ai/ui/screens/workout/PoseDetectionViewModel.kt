@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.formfit.ai.vision.CameraManager
 import com.formfit.ai.vision.PoseAnalysisManager
 import com.formfit.ai.vision.PoseLandmarkerHelper
+import com.formfit.ai.vision.PoseLandmarkSmoother
 import com.formfit.ai.vision.model.CalibrationState
 import com.formfit.ai.vision.model.OverallFormQuality
 import com.formfit.ai.vision.model.PoseLandmarkResult
@@ -34,7 +35,7 @@ class PoseDetectionViewModel @Inject constructor(
     val poseLandmarkerHelper: PoseLandmarkerHelper,
     val cameraManager: CameraManager,
     private val poseAnalysisManager: PoseAnalysisManager,
-    private val poseSmoother: com.formfit.ai.vision.PoseLandmarkSmoother
+    private val poseSmoother: PoseLandmarkSmoother
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PoseDetectionUiState())

@@ -2,12 +2,8 @@ package com.formfit.ai.vision
 
 import com.formfit.ai.vision.model.PoseLandmarkResult
 import com.google.mediapipe.tasks.components.containers.NormalizedLandmark
-import java.util.Optional
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class PoseLandmarkSmoother @Inject constructor() {
+class PoseLandmarkSmoother {
 
     companion object {
         private const val ALPHA = 0.35f

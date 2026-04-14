@@ -38,4 +38,9 @@ object VisionModule {
     fun provideRepCounterEngine(
         poseAnalysisManager: PoseAnalysisManager
     ): RepCounterEngine = RepCounterEngine(poseAnalysisManager)
+
+    @Provides
+    @Singleton
+    fun providePoseLandmarkSmoother(): com.formfit.ai.vision.PoseLandmarkSmoother =
+        com.formfit.ai.vision.PoseLandmarkSmoother()
 }

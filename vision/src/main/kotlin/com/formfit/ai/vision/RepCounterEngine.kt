@@ -5,8 +5,6 @@ import com.formfit.ai.vision.model.PoseLandmarkResult
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import javax.inject.Inject
-import javax.inject.Singleton
 
 enum class RepState {
     IDLE,
@@ -24,8 +22,7 @@ data class RepCounterState(
     val isRepComplete: Boolean = false
 )
 
-@Singleton
-class RepCounterEngine @Inject constructor(
+class RepCounterEngine(
     private val poseAnalysisManager: PoseAnalysisManager
 ) {
     private val _squatState = MutableStateFlow(RepCounterState())
