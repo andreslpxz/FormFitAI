@@ -1,13 +1,18 @@
 package com.formfit.ai.ui.screens.profile
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.rounded.CameraAlt
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -16,10 +21,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.SubcomposeAsyncImage
+import coil.request.ImageRequest
 import com.formfit.ai.core.model.SubscriptionPlan
 import com.formfit.ai.ui.theme.*
 
@@ -30,7 +39,21 @@ fun ProfileScreen(
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
     var showSignOutDialog by remember { mutableStateOf(false) }
+
+    val avatarPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            try {
+                val bytes = context.contentResolver.openInputStream(uri)?.readBytes()
+                if (bytes != null) viewModel.uploadAvatar(bytes)
+            } catch (e: Exception) {
+                android.util.Log.e("ProfileScreen", "Failed to read image bytes: ${e.message}", e)
+            }
+        }
+    }
 
     if (showSignOutDialog) {
         AlertDialog(
@@ -104,17 +127,80 @@ fun ProfileScreen(
                     Box(
                         modifier = Modifier
                             .size(80.dp)
-                            .clip(CircleShape)
-                            .background(FormFitSurface)
-                            .border(2.dp, FormFitGreen, CircleShape),
+                            .clickable { avatarPickerLauncher.launch("image/*") },
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = uiState.displayName.firstOrNull()?.uppercase() ?: "U",
-                            fontSize = 32.sp,
-                            fontWeight = FontWeight.Black,
-                            color = FormFitGreen
-                        )
+                        if (uiState.avatarUrl != null) {
+                            SubcomposeAsyncImage(
+                                model = ImageRequest.Builder(context)
+                                    .data(uiState.avatarUrl)
+                                    .crossfade(true)
+                                    .build(),
+                                contentDescription = "Profile avatar",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(CircleShape)
+                                    .border(2.dp, FormFitGreen, CircleShape),
+                                loading = {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .clip(CircleShape)
+                                            .background(FormFitSurface)
+                                            .border(2.dp, FormFitGreen, CircleShape),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(24.dp),
+                                            color = FormFitGreen,
+                                            strokeWidth = 2.dp
+                                        )
+                                    }
+                                },
+                                error = {
+                                    AvatarInitial(
+                                        initial = uiState.displayName.firstOrNull()?.uppercase() ?: "U"
+                                    )
+                                }
+                            )
+                        } else {
+                            AvatarInitial(
+                                initial = uiState.displayName.firstOrNull()?.uppercase() ?: "U"
+                            )
+                        }
+
+                        if (uiState.isUploadingAvatar) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(CircleShape)
+                                    .background(Color.Black.copy(alpha = 0.5f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    color = FormFitGreen,
+                                    strokeWidth = 2.dp
+                                )
+                            }
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .align(Alignment.BottomEnd)
+                                    .clip(CircleShape)
+                                    .background(FormFitGreen),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    Icons.Rounded.CameraAlt,
+                                    contentDescription = "Change photo",
+                                    tint = FormFitNavy,
+                                    modifier = Modifier.size(12.dp)
+                                )
+                            }
+                        }
                     }
 
                     Spacer(Modifier.height(12.dp))
@@ -235,6 +321,25 @@ fun ProfileScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun AvatarInitial(initial: String) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .clip(CircleShape)
+            .background(FormFitSurface)
+            .border(2.dp, FormFitGreen, CircleShape),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = initial,
+            fontSize = 32.sp,
+            fontWeight = FontWeight.Black,
+            color = FormFitGreen
+        )
     }
 }
 

@@ -42,8 +42,13 @@ serve(async (req) => {
 
     const url = new URL(req.url);
     const priceId = url.searchParams.get("priceId") ?? "";
-    if (!priceId) {
-      return new Response(JSON.stringify({ error: "priceId is required" }), {
+    const allowedPriceIds = [
+      Deno.env.get("STRIPE_PRICE_MONTHLY"),
+      Deno.env.get("STRIPE_PRICE_YEARLY"),
+    ].filter(Boolean);
+
+    if (!priceId || (allowedPriceIds.length > 0 && !allowedPriceIds.includes(priceId))) {
+      return new Response(JSON.stringify({ error: "Invalid or missing priceId" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

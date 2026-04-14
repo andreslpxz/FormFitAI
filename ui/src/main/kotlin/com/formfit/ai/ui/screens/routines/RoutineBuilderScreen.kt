@@ -69,6 +69,7 @@ class RoutineBuilderViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
+            subscriptionRepository.refreshSubscription()
             subscriptionRepository.subscriptionPlan.collect { plan ->
                 _uiState.update { it.copy(isPro = plan.isPro()) }
             }

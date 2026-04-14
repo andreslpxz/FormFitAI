@@ -8,6 +8,14 @@ const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") ?? "", {
 });
 
 const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET") ?? "";
+const PRICE_MONTHLY = Deno.env.get("STRIPE_PRICE_MONTHLY") ?? "";
+const PRICE_YEARLY = Deno.env.get("STRIPE_PRICE_YEARLY") ?? "";
+
+function planFromPriceId(priceId: string): "pro_monthly" | "pro_yearly" | null {
+  if (PRICE_YEARLY && priceId === PRICE_YEARLY) return "pro_yearly";
+  if (PRICE_MONTHLY && priceId === PRICE_MONTHLY) return "pro_monthly";
+  return null;
+}
 
 serve(async (req) => {
   const body = await req.text();
@@ -37,7 +45,7 @@ serve(async (req) => {
           session.subscription as string
         );
         const priceId = subscription.items.data[0]?.price.id ?? "";
-        const plan = priceId.includes("yearly") ? "pro_yearly" : "pro_monthly";
+        const plan = planFromPriceId(priceId) ?? "pro_monthly";
         const expiresAt = new Date(subscription.current_period_end * 1000).toISOString();
 
         await supabase.from("profiles").update({
@@ -52,7 +60,9 @@ serve(async (req) => {
           stripe_customer_id: session.customer as string,
           plan,
           status: subscription.status,
+          current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
           current_period_end: expiresAt,
+          cancel_at_period_end: subscription.cancel_at_period_end,
         });
 
         console.log(`Subscription activated for user ${userId}: ${plan}`);
@@ -61,27 +71,27 @@ serve(async (req) => {
 
       case "customer.subscription.updated": {
         const subscription = event.data.object as Stripe.Subscription;
-        const userId = subscription.metadata?.supabase_user_id;
         const customerId = subscription.customer as string;
-
-        const resolvedUserId = userId || await resolveUserIdByCustomer(supabase, customerId);
+        const resolvedUserId = await resolveUserIdByCustomer(supabase, customerId);
         if (!resolvedUserId) break;
 
         const priceId = subscription.items.data[0]?.price.id ?? "";
-        const plan = subscription.status === "active"
-          ? (priceId.includes("yearly") ? "pro_yearly" : "pro_monthly")
-          : "free";
+        const isActive = subscription.status === "active" || subscription.status === "trialing";
+        const plan = isActive ? (planFromPriceId(priceId) ?? "pro_monthly") : "free";
         const expiresAt = new Date(subscription.current_period_end * 1000).toISOString();
 
         await supabase.from("profiles").update({
           subscription_plan: plan,
-          subscription_expiry: plan === "free" ? null : expiresAt,
+          subscription_expiry: isActive ? expiresAt : null,
         }).eq("id", resolvedUserId);
 
         await supabase.from("subscriptions").update({
           plan,
           status: subscription.status,
+          current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
           current_period_end: expiresAt,
+          cancel_at_period_end: subscription.cancel_at_period_end,
+          updated_at: new Date().toISOString(),
         }).eq("stripe_subscription_id", subscription.id);
 
         console.log(`Subscription updated for user ${resolvedUserId}: ${plan} (${subscription.status})`);
@@ -102,6 +112,7 @@ serve(async (req) => {
         await supabase.from("subscriptions").update({
           plan: "free",
           status: "canceled",
+          updated_at: new Date().toISOString(),
         }).eq("stripe_subscription_id", subscription.id);
 
         console.log(`Subscription canceled for user ${resolvedUserId}`);
