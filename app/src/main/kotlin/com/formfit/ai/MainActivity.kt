@@ -12,7 +12,6 @@ import com.formfit.ai.ui.theme.FormFitTheme
 import dagger.hilt.android.AndroidEntryPoint
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.gotrue.auth
-import io.github.jan.supabase.gotrue.parseFragmentAndImportSession
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 

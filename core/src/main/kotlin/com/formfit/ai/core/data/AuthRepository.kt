@@ -1,10 +1,12 @@
 package com.formfit.ai.core.data
 
 import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.gotrue.SessionStatus
 import io.github.jan.supabase.gotrue.auth
 import io.github.jan.supabase.gotrue.providers.Google
 import io.github.jan.supabase.gotrue.providers.builtin.Email
 import io.github.jan.supabase.gotrue.providers.builtin.OTP
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -19,6 +21,7 @@ class AuthRepository @Inject constructor(
 ) {
     val currentUser get() = supabaseClient.auth.currentUserOrNull()
     val currentSession get() = supabaseClient.auth.currentSessionOrNull()
+    val sessionStatusFlow: Flow<SessionStatus> get() = supabaseClient.auth.sessionStatus
 
     suspend fun isLoggedIn(): Boolean = try {
         supabaseClient.auth.currentSessionOrNull() != null

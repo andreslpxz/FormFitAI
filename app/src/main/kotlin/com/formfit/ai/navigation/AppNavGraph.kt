@@ -6,28 +6,68 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.formfit.ai.ui.screens.splash.SplashScreen
-import com.formfit.ai.ui.screens.onboarding.OnboardingScreen
+import com.formfit.ai.AppAuthState
+import com.formfit.ai.AppViewModel
 import com.formfit.ai.ui.screens.auth.AuthScreen
+import com.formfit.ai.ui.screens.auth.ForgotPasswordScreen
 import com.formfit.ai.ui.screens.auth.LoginScreen
 import com.formfit.ai.ui.screens.auth.RegisterScreen
-import com.formfit.ai.ui.screens.auth.ForgotPasswordScreen
 import com.formfit.ai.ui.screens.main.MainScreen
+import com.formfit.ai.ui.screens.onboarding.OnboardingScreen
+import com.formfit.ai.ui.screens.splash.SplashScreen
+
+private val AUTH_ROUTES = setOf(
+    Routes.Auth.route,
+    Routes.Login.route,
+    Routes.Register.route,
+    Routes.ForgotPassword.route
+)
 
 @Composable
 fun AppNavGraph(
-    navController: NavHostController = rememberNavController()
+    navController: NavHostController = rememberNavController(),
+    appViewModel: AppViewModel = hiltViewModel()
 ) {
+    val authState by appViewModel.authState.collectAsStateWithLifecycle()
+    val hasOnboarded by appViewModel.hasOnboarded.collectAsStateWithLifecycle()
+    val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
+
+    LaunchedEffect(authState) {
+        when (authState) {
+            is AppAuthState.Authenticated -> {
+                if (currentRoute != null && currentRoute in AUTH_ROUTES) {
+                    navController.navigate(Routes.Main.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            }
+            is AppAuthState.Unauthenticated -> {
+                if (currentRoute == Routes.Main.route) {
+                    navController.navigate(Routes.Auth.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            }
+            AppAuthState.Initializing -> Unit
+        }
+    }
+
     NavHost(
         navController = navController,
         startDestination = Routes.Splash.route,
@@ -58,7 +98,7 @@ fun AppNavGraph(
     ) {
         composable(Routes.Splash.route) {
             SplashScreen(
-                onSplashComplete = { isLoggedIn, hasOnboarded ->
+                onSplashComplete = { isLoggedIn, _ ->
                     when {
                         !hasOnboarded -> navController.navigate(Routes.Onboarding.route) {
                             popUpTo(Routes.Splash.route) { inclusive = true }
@@ -90,7 +130,7 @@ fun AppNavGraph(
                 onNavigateToRegister = { navController.navigate(Routes.Register.route) },
                 onAuthSuccess = {
                     navController.navigate(Routes.Main.route) {
-                        popUpTo(Routes.Auth.route) { inclusive = true }
+                        popUpTo(0) { inclusive = true }
                     }
                 }
             )
