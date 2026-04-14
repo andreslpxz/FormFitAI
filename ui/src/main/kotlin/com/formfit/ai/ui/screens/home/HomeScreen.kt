@@ -134,7 +134,8 @@ fun HomeScreen(
             Spacer(Modifier.height(8.dp))
             CategoryFilter(
                 selectedCategory = uiState.selectedCategory,
-                onCategorySelected = viewModel::setCategory
+                onCategorySelected = viewModel::setCategory,
+                onCustomSelected = onNavigateToRoutines
             )
         }
 
@@ -221,7 +222,8 @@ fun AddRoutineCard(onClick: () -> Unit) {
 @Composable
 fun CategoryFilter(
     selectedCategory: ExerciseCategory?,
-    onCategorySelected: (ExerciseCategory?) -> Unit
+    onCategorySelected: (ExerciseCategory?) -> Unit,
+    onCustomSelected: (() -> Unit)? = null
 ) {
     LazyRow(
         contentPadding = PaddingValues(horizontal = 24.dp),
@@ -249,6 +251,19 @@ fun CategoryFilter(
                     selectedLabelColor = FormFitNavy
                 )
             )
+        }
+        if (onCustomSelected != null) {
+            item {
+                FilterChip(
+                    selected = false,
+                    onClick = onCustomSelected,
+                    label = { Text("🛠️ Custom") },
+                    colors = FilterChipDefaults.filterChipColors(
+                        containerColor = FormFitSurface2,
+                        labelColor = FormFitGreen
+                    )
+                )
+            }
         }
     }
 }

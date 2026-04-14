@@ -90,6 +90,17 @@ fun PoseCameraScreen(
         }
     }
 
+    var lastFormWarnMs by remember { mutableStateOf(0L) }
+    LaunchedEffect(uiState.formQuality.issues) {
+        if (uiState.isWorkoutActive && uiState.formQuality.issues.isNotEmpty()) {
+            val now = System.currentTimeMillis()
+            if (now - lastFormWarnMs > 5_000L) {
+                lastFormWarnMs = now
+                audioManager.playFormWarning()
+            }
+        }
+    }
+
     LaunchedEffect(uiState.savedSessionId) {
         uiState.savedSessionId?.let { id ->
             audioManager.playWorkoutComplete()

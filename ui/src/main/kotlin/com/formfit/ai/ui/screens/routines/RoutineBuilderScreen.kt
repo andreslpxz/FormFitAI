@@ -10,6 +10,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.ArrowDownward
+import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -115,6 +117,30 @@ class RoutineBuilderViewModel @Inject constructor(
         _uiState.update { state ->
             val updated = state.exercises.toMutableList().apply {
                 this[index] = this[index].copy(restSeconds = restSeconds.coerceIn(0, 300))
+            }
+            state.copy(exercises = updated)
+        }
+    }
+
+    fun moveExerciseUp(index: Int) {
+        if (index <= 0) return
+        _uiState.update { state ->
+            val updated = state.exercises.toMutableList().also { list ->
+                val temp = list[index - 1]
+                list[index - 1] = list[index].copy(order = index - 1)
+                list[index] = temp.copy(order = index)
+            }
+            state.copy(exercises = updated)
+        }
+    }
+
+    fun moveExerciseDown(index: Int) {
+        _uiState.update { state ->
+            if (index >= state.exercises.size - 1) return@update state
+            val updated = state.exercises.toMutableList().also { list ->
+                val temp = list[index + 1]
+                list[index + 1] = list[index].copy(order = index + 1)
+                list[index] = temp.copy(order = index)
             }
             state.copy(exercises = updated)
         }
@@ -234,7 +260,11 @@ fun RoutineBuilderScreen(
             itemsIndexed(uiState.exercises) { index, exercise ->
                 ExerciseBuilderRow(
                     exercise = exercise,
+                    index = index,
+                    total = uiState.exercises.size,
                     onRemove = { viewModel.removeExercise(index) },
+                    onMoveUp = { viewModel.moveExerciseUp(index) },
+                    onMoveDown = { viewModel.moveExerciseDown(index) },
                     onSetsChange = { viewModel.updateExerciseSets(index, it) },
                     onRepsChange = { viewModel.updateExerciseReps(index, it) },
                     onRestChange = { viewModel.updateExerciseRest(index, it) }
@@ -288,7 +318,11 @@ fun RoutineBuilderScreen(
 @Composable
 private fun ExerciseBuilderRow(
     exercise: RoutineExercise,
+    index: Int,
+    total: Int,
     onRemove: () -> Unit,
+    onMoveUp: () -> Unit,
+    onMoveDown: () -> Unit,
     onSetsChange: (Int) -> Unit,
     onRepsChange: (Int) -> Unit,
     onRestChange: (Int) -> Unit
@@ -303,6 +337,37 @@ private fun ExerciseBuilderRow(
         Row(
             verticalAlignment = Alignment.CenterVertically
         ) {
+            Column(
+                modifier = Modifier.size(32.dp),
+                verticalArrangement = Arrangement.spacedBy(0.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                IconButton(
+                    onClick = onMoveUp,
+                    enabled = index > 0,
+                    modifier = Modifier.size(16.dp)
+                ) {
+                    Icon(
+                        Icons.Rounded.ArrowUpward,
+                        contentDescription = "Move up",
+                        tint = if (index > 0) FormFitTeal else TextMuted.copy(alpha = 0.3f),
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
+                IconButton(
+                    onClick = onMoveDown,
+                    enabled = index < total - 1,
+                    modifier = Modifier.size(16.dp)
+                ) {
+                    Icon(
+                        Icons.Rounded.ArrowDownward,
+                        contentDescription = "Move down",
+                        tint = if (index < total - 1) FormFitTeal else TextMuted.copy(alpha = 0.3f),
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
+            }
+            Spacer(Modifier.width(8.dp))
             Text(
                 text = exercise.exerciseName,
                 color = Color.White,
