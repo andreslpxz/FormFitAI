@@ -8,12 +8,18 @@ import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
+import java.util.Calendar
 
 private const val TAG = "WorkoutRepository"
+private const val FREE_WEEKLY_WORKOUT_LIMIT = 3
+
+class WeeklyLimitReachedException :
+    RuntimeException("Weekly workout limit reached. Upgrade to Pro for unlimited workouts.")
 
 class WorkoutRepository(
     private val workoutSessionDao: WorkoutSessionDao,
-    private val supabaseClient: SupabaseClient
+    private val supabaseClient: SupabaseClient,
+    private val subscriptionRepository: SubscriptionRepository
 ) {
 
     suspend fun saveSession(session: WorkoutSession): Long = withContext(Dispatchers.IO) {
@@ -23,9 +29,29 @@ class WorkoutRepository(
         } else {
             session
         }
+
+        if (!subscriptionRepository.currentPlan.isPro()) {
+            val weekStart = getStartOfWeekMs()
+            val count = workoutSessionDao.getWeeklySessionCount(weekStart)
+            if (count >= FREE_WEEKLY_WORKOUT_LIMIT) {
+                Log.w(TAG, "Free user hit weekly workout limit ($count/$FREE_WEEKLY_WORKOUT_LIMIT)")
+                throw WeeklyLimitReachedException()
+            }
+        }
+
         val id = workoutSessionDao.insertSession(sessionWithUser)
         trySync(sessionWithUser.copy(id = id))
         id
+    }
+
+    private fun getStartOfWeekMs(): Long {
+        val calendar = Calendar.getInstance()
+        calendar.set(Calendar.DAY_OF_WEEK, calendar.firstDayOfWeek)
+        calendar.set(Calendar.HOUR_OF_DAY, 0)
+        calendar.set(Calendar.MINUTE, 0)
+        calendar.set(Calendar.SECOND, 0)
+        calendar.set(Calendar.MILLISECOND, 0)
+        return calendar.timeInMillis
     }
 
     suspend fun getSessionById(id: Long): WorkoutSession? = withContext(Dispatchers.IO) {

@@ -34,6 +34,9 @@ interface WorkoutSessionDao {
     @Query("SELECT COUNT(*) FROM workout_sessions WHERE created_at >= :since")
     fun getSessionCountSince(since: Long): Flow<Int>
 
+    @Query("SELECT COUNT(*) FROM workout_sessions WHERE created_at >= :weekStart")
+    suspend fun getWeeklySessionCount(weekStart: Long): Int
+
     @Query("SELECT * FROM workout_sessions WHERE synced_to_cloud = 0")
     suspend fun getUnsyncedSessions(): List<WorkoutSession>
 

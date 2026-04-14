@@ -83,8 +83,9 @@ object CoreModule {
     @Singleton
     fun provideWorkoutRepository(
         workoutSessionDao: WorkoutSessionDao,
-        supabaseClient: SupabaseClient
-    ): WorkoutRepository = WorkoutRepository(workoutSessionDao, supabaseClient)
+        supabaseClient: SupabaseClient,
+        subscriptionRepository: SubscriptionRepository
+    ): WorkoutRepository = WorkoutRepository(workoutSessionDao, supabaseClient, subscriptionRepository)
 
     @Provides
     @Singleton

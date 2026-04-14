@@ -3,6 +3,7 @@ package com.formfit.ai.ui.screens.progress
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.formfit.ai.core.data.BodyWeightDao
+import com.formfit.ai.core.data.SubscriptionRepository
 import com.formfit.ai.core.data.WorkoutSessionDao
 import com.formfit.ai.core.model.BodyWeightEntry
 import com.formfit.ai.core.model.WorkoutSession
@@ -37,13 +38,15 @@ data class ProgressUiState(
     val weightHistory: List<BodyWeightEntry> = emptyList(),
     val showWeightDialog: Boolean = false,
     val currentStreakDays: Int = 0,
-    val longestStreakDays: Int = 0
+    val longestStreakDays: Int = 0,
+    val isPro: Boolean = false
 )
 
 @HiltViewModel
 class ProgressViewModel @Inject constructor(
     private val workoutSessionDao: WorkoutSessionDao,
-    private val bodyWeightDao: BodyWeightDao
+    private val bodyWeightDao: BodyWeightDao,
+    private val subscriptionRepository: SubscriptionRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProgressUiState())
@@ -52,6 +55,16 @@ class ProgressViewModel @Inject constructor(
     init {
         loadSessionData()
         loadWeightData()
+        observeSubscription()
+    }
+
+    private fun observeSubscription() {
+        viewModelScope.launch {
+            subscriptionRepository.refreshSubscription()
+            subscriptionRepository.subscriptionPlan.collect { plan ->
+                _uiState.update { it.copy(isPro = plan.isPro()) }
+            }
+        }
     }
 
     private fun loadSessionData() {

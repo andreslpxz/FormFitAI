@@ -25,6 +25,10 @@ android {
             ".eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRuamFobmtvZXppYWRhYmV0bHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxODAzMTcsImV4cCI6MjA5MTc1NjMxN30" +
             ".FyNhQzf_jurZiFGWxdyDyojMroDpyO36BPRnQ378ops\""
         )
+        // Replace with real Stripe price IDs from your dashboard before shipping.
+        // Must match STRIPE_PRICE_MONTHLY / STRIPE_PRICE_YEARLY env vars on the Edge Functions.
+        buildConfigField("String", "STRIPE_PRICE_MONTHLY", "\"price_monthly_999\"")
+        buildConfigField("String", "STRIPE_PRICE_YEARLY", "\"price_yearly_5999\"")
     }
 
     buildTypes {

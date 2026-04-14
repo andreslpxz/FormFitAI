@@ -17,6 +17,15 @@ android {
         val googleClientId = project.findProperty("GOOGLE_WEB_CLIENT_ID")?.toString()
             ?: "YOUR_GOOGLE_WEB_CLIENT_ID"
         buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"$googleClientId\"")
+
+        // Replace with real Stripe price IDs before shipping.
+        // Must match STRIPE_PRICE_MONTHLY / STRIPE_PRICE_YEARLY on Supabase Edge Functions.
+        val stripePriceMonthly = project.findProperty("STRIPE_PRICE_MONTHLY")?.toString()
+            ?: "price_monthly_999"
+        val stripePriceYearly = project.findProperty("STRIPE_PRICE_YEARLY")?.toString()
+            ?: "price_yearly_5999"
+        buildConfigField("String", "STRIPE_PRICE_MONTHLY", "\"$stripePriceMonthly\"")
+        buildConfigField("String", "STRIPE_PRICE_YEARLY", "\"$stripePriceYearly\"")
     }
 
     compileOptions {

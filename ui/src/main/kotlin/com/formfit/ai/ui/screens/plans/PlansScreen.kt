@@ -30,6 +30,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.formfit.ai.core.data.SubscriptionRepository
 import com.formfit.ai.core.model.SubscriptionPlan
+import com.formfit.ai.ui.BuildConfig
 import com.formfit.ai.ui.theme.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,9 +41,6 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 private const val TAG = "PlansScreen"
-
-const val STRIPE_PRICE_MONTHLY = "price_monthly_999"
-const val STRIPE_PRICE_YEARLY = "price_yearly_5999"
 
 data class PlansUiState(
     val currentPlan: SubscriptionPlan = SubscriptionPlan.FREE,
@@ -77,9 +75,9 @@ class PlansViewModel @Inject constructor(
 
     fun requestCheckout() {
         val priceId = if (_uiState.value.selectedBilling == BillingPeriod.MONTHLY) {
-            STRIPE_PRICE_MONTHLY
+            BuildConfig.STRIPE_PRICE_MONTHLY
         } else {
-            STRIPE_PRICE_YEARLY
+            BuildConfig.STRIPE_PRICE_YEARLY
         }
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
