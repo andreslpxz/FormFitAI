@@ -138,12 +138,12 @@ Steps:
 
 ### MediaPipe Model
 
-Download `pose_landmarker_full.task` from MediaPipe and place in:
+The model file (`pose_landmarker_full.task`, ~9MB) is already downloaded and placed at:
 ```
-app/src/main/assets/pose_landmarker_full.task
+vision/src/main/assets/pose_landmarker_full.task
 ```
 
-Download: https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task
+If re-downloading: https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task
 
 ### Project Preview Server
 
@@ -156,7 +156,23 @@ A Node.js server runs on port 5000 showing the project documentation and archite
 | Task | Status |
 |------|--------|
 | #1 Foundation & Architecture | ✅ Complete |
-| #2 Onboarding & Auth (Supabase) | Pending |
-| #3 Vision Engine (MediaPipe) | Pending |
+| #2 Onboarding & Auth (Supabase) | ✅ Complete |
+| #3 Vision Engine (MediaPipe) | ✅ Complete |
 | #4 Workout Engine & Active Workout UI | Pending |
 | #5 Progress Dashboard & Stripe | Pending |
+
+### Task #3 Vision Engine — Delivered Components
+
+- `vision/PoseLandmarkerHelper.kt` — MediaPipe LIVE_STREAM, GPU→CPU fallback, RGBA_8888 stride-aware bitmap conversion
+- `vision/CameraManager.kt` — CameraX front camera, ImageAnalysis, 60 FPS target, lifecycle-bound
+- `vision/PoseLandmarkSmoother.kt` — EMA lerp smoothing (alpha=0.35) for flicker-free skeleton
+- `vision/PoseAnalysisManager.kt` — Knee/hip/elbow/shoulder angle calculation, squat/pushup/lunge form analysis
+- `vision/RepCounterEngine.kt` — State machine rep counting per exercise
+- `vision/model/PoseLandmarks.kt` — 33 landmark indices, SKELETON_CONNECTIONS graph
+- `vision/model/FormQuality.kt` — FormQualityLevel/SegmentQuality/CalibrationState enums and data classes
+- `vision/assets/pose_landmarker_full.task` — MediaPipe full pose model (9MB)
+- `ui/screens/workout/SkeletonOverlay.kt` — Compose Canvas skeleton with color-coded bones
+- `ui/screens/workout/CalibrationOverlay.kt` — Auto-calibration UI (step back/closer/center)
+- `ui/screens/workout/PoseCameraScreen.kt` — Full camera screen with permission handling
+- `ui/screens/workout/CameraPermissionScreen.kt` — Camera permission rationale UI
+- `ui/screens/workout/PoseDetectionViewModel.kt` — Connects camera → MediaPipe → form analysis → smooth pose

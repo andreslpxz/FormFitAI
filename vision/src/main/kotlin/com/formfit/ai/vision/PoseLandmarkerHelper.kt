@@ -47,28 +47,47 @@ class PoseLandmarkerHelper @Inject constructor(
         minPoseTrackingConfidence: Float = DEFAULT_POSE_TRACKING_CONFIDENCE,
         minPosePresenceConfidence: Float = DEFAULT_POSE_PRESENCE_CONFIDENCE
     ) {
-        val baseOptions = BaseOptions.builder()
-            .setModelAssetPath(MODEL_POSE_LANDMARKER_FULL)
-            .setDelegate(Delegate.GPU)
-            .build()
+        poseLandmarker = tryCreateWithDelegate(
+            Delegate.GPU,
+            minPoseDetectionConfidence,
+            minPoseTrackingConfidence,
+            minPosePresenceConfidence
+        ) ?: tryCreateWithDelegate(
+            Delegate.CPU,
+            minPoseDetectionConfidence,
+            minPoseTrackingConfidence,
+            minPosePresenceConfidence
+        )
+        _isRunning.value = poseLandmarker != null
+    }
 
-        val options = PoseLandmarker.PoseLandmarkerOptions.builder()
-            .setBaseOptions(baseOptions)
-            .setMinPoseDetectionConfidence(minPoseDetectionConfidence)
-            .setMinTrackingConfidence(minPoseTrackingConfidence)
-            .setMinPosePresenceConfidence(minPosePresenceConfidence)
-            .setNumPoses(DEFAULT_NUM_POSES)
-            .setRunningMode(RunningMode.LIVE_STREAM)
-            .setResultListener { result, image ->
-                onResult(result, image)
-            }
-            .setErrorListener { error ->
-                error.printStackTrace()
-            }
-            .build()
+    private fun tryCreateWithDelegate(
+        delegate: Delegate,
+        minPoseDetectionConfidence: Float,
+        minPoseTrackingConfidence: Float,
+        minPosePresenceConfidence: Float
+    ): PoseLandmarker? {
+        return try {
+            val baseOptions = BaseOptions.builder()
+                .setModelAssetPath(MODEL_POSE_LANDMARKER_FULL)
+                .setDelegate(delegate)
+                .build()
 
-        poseLandmarker = PoseLandmarker.createFromOptions(context, options)
-        _isRunning.value = true
+            val options = PoseLandmarker.PoseLandmarkerOptions.builder()
+                .setBaseOptions(baseOptions)
+                .setMinPoseDetectionConfidence(minPoseDetectionConfidence)
+                .setMinTrackingConfidence(minPoseTrackingConfidence)
+                .setMinPosePresenceConfidence(minPosePresenceConfidence)
+                .setNumPoses(DEFAULT_NUM_POSES)
+                .setRunningMode(RunningMode.LIVE_STREAM)
+                .setResultListener { result, image -> onResult(result, image) }
+                .setErrorListener { error -> error.printStackTrace() }
+                .build()
+
+            PoseLandmarker.createFromOptions(context, options)
+        } catch (e: Exception) {
+            null
+        }
     }
 
     fun detectAsync(imageProxy: ImageProxy) {
@@ -103,12 +122,18 @@ class PoseLandmarkerHelper @Inject constructor(
     }
 
     private fun imageProxyToBitmap(imageProxy: ImageProxy): Bitmap {
+        val plane = imageProxy.planes[0]
+        val buffer = plane.buffer
+        val pixelStride = plane.pixelStride
+        val rowStride = plane.rowStride
+        val rowPadding = rowStride - pixelStride * imageProxy.width
+
         val bitmapBuffer = Bitmap.createBitmap(
-            imageProxy.width,
+            imageProxy.width + rowPadding / pixelStride,
             imageProxy.height,
             Bitmap.Config.ARGB_8888
         )
-        imageProxy.use { bitmapBuffer.copyPixelsFromBuffer(imageProxy.planes[0].buffer) }
+        bitmapBuffer.copyPixelsFromBuffer(buffer)
 
         val matrix = Matrix().apply {
             postRotate(imageProxy.imageInfo.rotationDegrees.toFloat())
@@ -120,7 +145,13 @@ class PoseLandmarkerHelper @Inject constructor(
             }
         }
 
-        return Bitmap.createBitmap(bitmapBuffer, 0, 0, bitmapBuffer.width, bitmapBuffer.height, matrix, true)
+        val rotatedBitmap = Bitmap.createBitmap(
+            bitmapBuffer, 0, 0,
+            imageProxy.width, imageProxy.height,
+            matrix, true
+        )
+        bitmapBuffer.recycle()
+        return rotatedBitmap
     }
 
     fun close() {

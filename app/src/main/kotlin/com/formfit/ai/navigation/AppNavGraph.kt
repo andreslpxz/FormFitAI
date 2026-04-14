@@ -31,6 +31,7 @@ import com.formfit.ai.ui.screens.auth.RegisterScreen
 import com.formfit.ai.ui.screens.main.MainScreen
 import com.formfit.ai.ui.screens.onboarding.OnboardingScreen
 import com.formfit.ai.ui.screens.splash.SplashScreen
+import com.formfit.ai.ui.screens.workout.PoseCameraScreen
 
 private val AUTH_ROUTES = setOf(
     Routes.Auth.route,
@@ -181,8 +182,11 @@ fun AppNavGraph(
             route = Routes.ActiveWorkout.route,
             arguments = listOf(navArgument("exerciseId") { type = NavType.StringType })
         ) { backStackEntry ->
-            val exerciseId = backStackEntry.arguments?.getString("exerciseId") ?: ""
-            PlaceholderScreen("Active Workout: $exerciseId")
+            val exerciseId = backStackEntry.arguments?.getString("exerciseId") ?: "squats"
+            PoseCameraScreen(
+                exerciseId = exerciseId,
+                onBack = { navController.popBackStack() }
+            )
         }
 
         composable(
