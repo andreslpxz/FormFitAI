@@ -7,7 +7,6 @@ import io.github.jan.supabase.gotrue.providers.Google
 import io.github.jan.supabase.gotrue.providers.builtin.Email
 import io.github.jan.supabase.gotrue.providers.builtin.OTP
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -15,9 +14,7 @@ private const val DEEP_LINK_CALLBACK = "formfitai://auth/callback"
 
 @Singleton
 class AuthRepository @Inject constructor(
-    private val supabaseClient: SupabaseClient,
-    private val profileRepository: ProfileRepository,
-    private val preferencesManager: PreferencesManager
+    private val supabaseClient: SupabaseClient
 ) {
     val currentUser get() = supabaseClient.auth.currentUserOrNull()
     val currentSession get() = supabaseClient.auth.currentSessionOrNull()
@@ -51,18 +48,6 @@ class AuthRepository @Inject constructor(
                 put("display_name", kotlinx.serialization.json.JsonPrimitive(displayName))
             }
         }
-
-        val onboardingData = preferencesManager.getOnboardingData().first()
-        profileRepository.createProfile(
-            displayName = displayName,
-            gender = onboardingData.gender,
-            goal = onboardingData.goal,
-            frequency = onboardingData.frequency,
-            equipment = onboardingData.equipment,
-            referral = onboardingData.referral,
-            onboardingComplete = true
-        )
-
         Result.success(Unit)
     } catch (e: Exception) {
         Result.failure(e)
@@ -73,22 +58,6 @@ class AuthRepository @Inject constructor(
             this.idToken = idToken
             this.nonce = rawNonce
         }
-
-        val user = supabaseClient.auth.currentUserOrNull()
-        if (user != null) {
-            val onboardingData = preferencesManager.getOnboardingData().first()
-            profileRepository.createProfile(
-                displayName = user.userMetadata?.get("full_name")
-                    ?.toString()?.trim('"') ?: user.email ?: "User",
-                gender = onboardingData.gender,
-                goal = onboardingData.goal,
-                frequency = onboardingData.frequency,
-                equipment = onboardingData.equipment,
-                referral = onboardingData.referral,
-                onboardingComplete = onboardingData.name.isNotBlank()
-            )
-        }
-
         Result.success(Unit)
     } catch (e: Exception) {
         Result.failure(e)

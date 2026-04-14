@@ -100,13 +100,13 @@ fun AppNavGraph(
             SplashScreen(
                 onSplashComplete = { isLoggedIn, _ ->
                     when {
+                        isLoggedIn -> navController.navigate(Routes.Main.route) {
+                            popUpTo(Routes.Splash.route) { inclusive = true }
+                        }
                         !hasOnboarded -> navController.navigate(Routes.Onboarding.route) {
                             popUpTo(Routes.Splash.route) { inclusive = true }
                         }
-                        !isLoggedIn -> navController.navigate(Routes.Auth.route) {
-                            popUpTo(Routes.Splash.route) { inclusive = true }
-                        }
-                        else -> navController.navigate(Routes.Main.route) {
+                        else -> navController.navigate(Routes.Auth.route) {
                             popUpTo(Routes.Splash.route) { inclusive = true }
                         }
                     }

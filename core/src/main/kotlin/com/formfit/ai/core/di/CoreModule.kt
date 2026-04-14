@@ -64,8 +64,6 @@ object CoreModule {
     @Provides
     @Singleton
     fun provideAuthRepository(
-        supabaseClient: SupabaseClient,
-        profileRepository: ProfileRepository,
-        preferencesManager: PreferencesManager
-    ): AuthRepository = AuthRepository(supabaseClient, profileRepository, preferencesManager)
+        supabaseClient: SupabaseClient
+    ): AuthRepository = AuthRepository(supabaseClient)
 }

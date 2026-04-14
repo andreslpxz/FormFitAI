@@ -34,6 +34,7 @@ class ProfileRepository @Inject constructor(
             val profile = mapOf(
                 "id" to userId,
                 "display_name" to displayName,
+                "avatar_url" to "",
                 "gender" to gender,
                 "goal" to goal,
                 "workout_frequency" to frequency,
