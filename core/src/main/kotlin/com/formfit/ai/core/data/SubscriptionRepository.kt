@@ -26,9 +26,6 @@ private data class ProfilePlanRow(
 )
 
 private const val TAG = "SubscriptionRepository"
-private const val SUPABASE_URL = "https://tnjahnkoeziadabetlvx.supabase.co"
-private const val SUPABASE_ANON_KEY =
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRuamFobmtvZXppYWRhYmV0bHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxODAzMTcsImV4cCI6MjA5MTc1NjMxN30.FyNhQzf_jurZiFGWxdyDyojMroDpyO36BPRnQ378ops"
 
 @Singleton
 class SubscriptionRepository @Inject constructor(
@@ -72,13 +69,15 @@ class SubscriptionRepository @Inject constructor(
             ?: throw IllegalStateException("Not authenticated — cannot start checkout")
 
         return withContext(Dispatchers.IO) {
-            val endpoint = "$SUPABASE_URL/functions/v1/create-checkout-session?priceId=${java.net.URLEncoder.encode(priceId, "UTF-8")}"
+            val baseUrl = supabaseClient.supabaseUrl.trimEnd('/')
+            val anonKey = supabaseClient.supabaseKey
+            val endpoint = "$baseUrl/functions/v1/create-checkout-session?priceId=${java.net.URLEncoder.encode(priceId, "UTF-8")}"
             val conn = URL(endpoint).openConnection() as HttpURLConnection
             conn.connectTimeout = 20_000
             conn.readTimeout = 20_000
             conn.requestMethod = "GET"
             conn.setRequestProperty("Authorization", "Bearer $accessToken")
-            conn.setRequestProperty("apikey", SUPABASE_ANON_KEY)
+            conn.setRequestProperty("apikey", anonKey)
             try {
                 val code = conn.responseCode
                 val body = if (code == 200) {
@@ -99,13 +98,15 @@ class SubscriptionRepository @Inject constructor(
             ?: throw IllegalStateException("Not authenticated — cannot open billing portal")
 
         return withContext(Dispatchers.IO) {
-            val endpoint = "$SUPABASE_URL/functions/v1/customer-portal"
+            val baseUrl = supabaseClient.supabaseUrl.trimEnd('/')
+            val anonKey = supabaseClient.supabaseKey
+            val endpoint = "$baseUrl/functions/v1/customer-portal"
             val conn = URL(endpoint).openConnection() as HttpURLConnection
             conn.connectTimeout = 20_000
             conn.readTimeout = 20_000
             conn.requestMethod = "GET"
             conn.setRequestProperty("Authorization", "Bearer $accessToken")
-            conn.setRequestProperty("apikey", SUPABASE_ANON_KEY)
+            conn.setRequestProperty("apikey", anonKey)
             try {
                 val code = conn.responseCode
                 val body = if (code == 200) {

@@ -2,10 +2,22 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@13.3.0?target=deno";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") ?? "", {
+const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY");
+const STRIPE_PRICE_MONTHLY = Deno.env.get("STRIPE_PRICE_MONTHLY");
+const STRIPE_PRICE_YEARLY = Deno.env.get("STRIPE_PRICE_YEARLY");
+
+if (!STRIPE_SECRET_KEY || !STRIPE_PRICE_MONTHLY || !STRIPE_PRICE_YEARLY) {
+  console.error(
+    "FATAL: Required env vars missing: STRIPE_SECRET_KEY, STRIPE_PRICE_MONTHLY, STRIPE_PRICE_YEARLY"
+  );
+}
+
+const stripe = new Stripe(STRIPE_SECRET_KEY ?? "", {
   apiVersion: "2023-10-16",
   httpClient: Stripe.createFetchHttpClient(),
 });
+
+const ALLOWED_PRICE_IDS = new Set([STRIPE_PRICE_MONTHLY, STRIPE_PRICE_YEARLY].filter(Boolean) as string[]);
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -40,14 +52,17 @@ serve(async (req) => {
       });
     }
 
+    if (ALLOWED_PRICE_IDS.size === 0) {
+      return new Response(
+        JSON.stringify({ error: "Service misconfigured: price IDs not set" }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const url = new URL(req.url);
     const priceId = url.searchParams.get("priceId") ?? "";
-    const allowedPriceIds = [
-      Deno.env.get("STRIPE_PRICE_MONTHLY"),
-      Deno.env.get("STRIPE_PRICE_YEARLY"),
-    ].filter(Boolean);
 
-    if (!priceId || (allowedPriceIds.length > 0 && !allowedPriceIds.includes(priceId))) {
+    if (!priceId || !ALLOWED_PRICE_IDS.has(priceId)) {
       return new Response(JSON.stringify({ error: "Invalid or missing priceId" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -45,7 +45,11 @@ serve(async (req) => {
           session.subscription as string
         );
         const priceId = subscription.items.data[0]?.price.id ?? "";
-        const plan = planFromPriceId(priceId) ?? "pro_monthly";
+        const plan = planFromPriceId(priceId);
+        if (!plan) {
+          console.error(`checkout.session.completed: unrecognized priceId '${priceId}' — no Pro access granted`);
+          break;
+        }
         const expiresAt = new Date(subscription.current_period_end * 1000).toISOString();
 
         await supabase.from("profiles").update({
@@ -77,7 +81,12 @@ serve(async (req) => {
 
         const priceId = subscription.items.data[0]?.price.id ?? "";
         const isActive = subscription.status === "active" || subscription.status === "trialing";
-        const plan = isActive ? (planFromPriceId(priceId) ?? "pro_monthly") : "free";
+        const resolvedPlan = planFromPriceId(priceId);
+        if (isActive && !resolvedPlan) {
+          console.error(`customer.subscription.updated: unrecognized priceId '${priceId}' — no Pro access granted`);
+          break;
+        }
+        const plan = isActive ? resolvedPlan! : "free";
         const expiresAt = new Date(subscription.current_period_end * 1000).toISOString();
 
         await supabase.from("profiles").update({
