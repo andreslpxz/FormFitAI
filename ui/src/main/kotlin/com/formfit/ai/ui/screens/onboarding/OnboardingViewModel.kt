@@ -2,7 +2,9 @@ package com.formfit.ai.ui.screens.onboarding
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.formfit.ai.core.data.AuthRepository
 import com.formfit.ai.core.data.PreferencesManager
+import com.formfit.ai.core.data.ProfileRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -31,19 +33,22 @@ data class OnboardingUiState(
     val isLoading: Boolean = false,
     val isComplete: Boolean = false
 ) {
-    val canProceed: Boolean get() = when (OnboardingStep.values()[currentStep]) {
-        OnboardingStep.WELCOME -> name.isNotBlank()
-        OnboardingStep.GENDER -> gender.isNotBlank()
-        OnboardingStep.GOAL -> goal.isNotBlank()
-        OnboardingStep.FREQUENCY -> frequency.isNotBlank()
-        OnboardingStep.EQUIPMENT -> equipment.isNotBlank()
-        OnboardingStep.REFERRAL -> true
-    }
+    val canProceed: Boolean
+        get() = when (OnboardingStep.values()[currentStep]) {
+            OnboardingStep.WELCOME -> name.isNotBlank()
+            OnboardingStep.GENDER -> gender.isNotBlank()
+            OnboardingStep.GOAL -> goal.isNotBlank()
+            OnboardingStep.FREQUENCY -> frequency.isNotBlank()
+            OnboardingStep.EQUIPMENT -> equipment.isNotBlank()
+            OnboardingStep.REFERRAL -> true
+        }
 }
 
 @HiltViewModel
 class OnboardingViewModel @Inject constructor(
-    private val preferencesManager: PreferencesManager
+    private val preferencesManager: PreferencesManager,
+    private val profileRepository: ProfileRepository,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(OnboardingUiState())
@@ -85,6 +90,17 @@ class OnboardingViewModel @Inject constructor(
                 referral = state.referralSource
             )
             preferencesManager.setOnboardingComplete(true)
+
+            if (authRepository.isLoggedIn()) {
+                profileRepository.updateOnboardingData(
+                    displayName = state.name,
+                    gender = state.gender,
+                    goal = state.goal,
+                    frequency = state.frequency,
+                    equipment = state.equipment,
+                    referral = state.referralSource
+                )
+            }
 
             _uiState.update { it.copy(isLoading = false, isComplete = true) }
         }

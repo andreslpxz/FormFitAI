@@ -2,7 +2,10 @@ package com.formfit.ai.core.di
 
 import android.content.Context
 import androidx.room.Room
+import com.formfit.ai.core.data.AuthRepository
+import com.formfit.ai.core.data.FormFitSessionManager
 import com.formfit.ai.core.data.PreferencesManager
+import com.formfit.ai.core.data.ProfileRepository
 import com.formfit.ai.core.data.SupabaseClientFactory
 import com.formfit.ai.core.data.WorkoutDatabase
 import com.formfit.ai.core.data.WorkoutSessionDao
@@ -20,8 +23,21 @@ object CoreModule {
 
     @Provides
     @Singleton
-    fun provideSupabaseClient(): SupabaseClient =
-        SupabaseClientFactory.create()
+    fun providePreferencesManager(
+        @ApplicationContext context: Context
+    ): PreferencesManager = PreferencesManager(context)
+
+    @Provides
+    @Singleton
+    fun provideSessionManager(
+        @ApplicationContext context: Context
+    ): FormFitSessionManager = FormFitSessionManager(context)
+
+    @Provides
+    @Singleton
+    fun provideSupabaseClient(
+        sessionManager: FormFitSessionManager
+    ): SupabaseClient = SupabaseClientFactory.create(sessionManager)
 
     @Provides
     @Singleton
@@ -41,7 +57,15 @@ object CoreModule {
 
     @Provides
     @Singleton
-    fun providePreferencesManager(
-        @ApplicationContext context: Context
-    ): PreferencesManager = PreferencesManager(context)
+    fun provideProfileRepository(
+        supabaseClient: SupabaseClient
+    ): ProfileRepository = ProfileRepository(supabaseClient)
+
+    @Provides
+    @Singleton
+    fun provideAuthRepository(
+        supabaseClient: SupabaseClient,
+        profileRepository: ProfileRepository,
+        preferencesManager: PreferencesManager
+    ): AuthRepository = AuthRepository(supabaseClient, profileRepository, preferencesManager)
 }

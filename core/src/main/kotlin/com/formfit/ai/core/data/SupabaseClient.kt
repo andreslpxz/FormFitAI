@@ -9,15 +9,24 @@ import io.github.jan.supabase.storage.Storage
 
 object SupabaseClientFactory {
     const val SUPABASE_URL = "https://tnjahnkoeziadabetlvx.supabase.co"
-    const val SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRuamFobmtvZXppYWRhYmV0bHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTQ3MDAwMDAsImV4cCI6MjAzMDI3NjAwMH0.placeholder_key_replace_with_actual"
+    const val SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9" +
+        ".eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRuamFobmtvZXppYWRhYmV0bHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxODAzMTcsImV4cCI6MjA5MTc1NjMxN30" +
+        ".FyNhQzf_jurZiFGWxdyDyojMroDpyO36BPRnQ378ops"
 
-    fun create(): SupabaseClient = createSupabaseClient(
-        supabaseUrl = SUPABASE_URL,
-        supabaseKey = SUPABASE_ANON_KEY
-    ) {
-        install(GoTrue)
-        install(Postgrest)
-        install(Storage)
-        install(Realtime)
-    }
+    fun create(sessionManager: FormFitSessionManager? = null): SupabaseClient =
+        createSupabaseClient(
+            supabaseUrl = SUPABASE_URL,
+            supabaseKey = SUPABASE_ANON_KEY
+        ) {
+            install(GoTrue) {
+                if (sessionManager != null) {
+                    this.sessionManager = sessionManager
+                }
+                alwaysAutoRefresh = true
+                autoLoadFromStorage = true
+            }
+            install(Postgrest)
+            install(Storage)
+            install(Realtime)
+        }
 }

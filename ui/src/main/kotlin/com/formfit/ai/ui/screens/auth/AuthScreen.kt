@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -30,6 +31,7 @@ fun AuthScreen(
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
     var magicLinkEmail by remember { mutableStateOf("") }
     var showMagicLinkInput by remember { mutableStateOf(false) }
 
@@ -76,7 +78,7 @@ fun AuthScreen(
             Spacer(Modifier.weight(1f))
 
             GoogleSignInButton(
-                onClick = { viewModel.signInWithGoogle() },
+                onClick = { viewModel.signInWithGoogle(context) },
                 isLoading = uiState.isGoogleLoading,
                 modifier = Modifier.fillMaxWidth()
             )

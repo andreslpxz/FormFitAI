@@ -39,7 +39,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- Deep link for Magic Link auth -->
+            <!-- Deep link for Supabase HTTPS callback -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -48,6 +48,17 @@
                     android:host="tnjahnkoeziadabetlvx.supabase.co"
                     android:pathPrefix="/auth/v1/callback"
                     android:scheme="https" />
+            </intent-filter>
+
+            <!-- Deep link for custom scheme (Magic Link / OAuth) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:host="auth"
+                    android:path="/callback"
+                    android:scheme="formfitai" />
             </intent-filter>
         </activity>
     </application>

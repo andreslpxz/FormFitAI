@@ -2,9 +2,8 @@ package com.formfit.ai.ui.screens.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.formfit.ai.core.data.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import io.github.jan.supabase.SupabaseClient
-import io.github.jan.supabase.gotrue.auth
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,7 +20,7 @@ data class ForgotPasswordUiState(
 
 @HiltViewModel
 class ForgotPasswordViewModel @Inject constructor(
-    private val supabaseClient: SupabaseClient
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ForgotPasswordUiState())
@@ -30,14 +29,16 @@ class ForgotPasswordViewModel @Inject constructor(
     fun setEmail(email: String) = _uiState.update { it.copy(email = email) }
 
     fun sendResetEmail() {
+        val email = _uiState.value.email
+        if (email.isBlank()) {
+            _uiState.update { it.copy(errorMessage = "Please enter your email") }
+            return
+        }
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-            try {
-                supabaseClient.auth.resetPasswordForEmail(_uiState.value.email)
-                _uiState.update { it.copy(isLoading = false, emailSent = true) }
-            } catch (e: Exception) {
-                _uiState.update { it.copy(isLoading = false, errorMessage = "Failed to send reset email: ${e.message}") }
-            }
+            authRepository.sendPasswordReset(email)
+                .onSuccess { _uiState.update { it.copy(isLoading = false, emailSent = true) } }
+                .onFailure { e -> _uiState.update { it.copy(isLoading = false, errorMessage = "Failed: ${e.message}") } }
         }
     }
 }

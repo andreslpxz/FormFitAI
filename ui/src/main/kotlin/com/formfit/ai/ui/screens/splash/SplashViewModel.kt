@@ -2,10 +2,9 @@ package com.formfit.ai.ui.screens.splash
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.formfit.ai.core.data.AuthRepository
 import com.formfit.ai.core.data.PreferencesManager
 import dagger.hilt.android.lifecycle.HiltViewModel
-import io.github.jan.supabase.SupabaseClient
-import io.github.jan.supabase.gotrue.auth
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,7 +21,7 @@ sealed class SplashUiState {
 @HiltViewModel
 class SplashViewModel @Inject constructor(
     private val preferencesManager: PreferencesManager,
-    private val supabaseClient: SupabaseClient
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<SplashUiState>(SplashUiState.Loading)
@@ -37,12 +36,7 @@ class SplashViewModel @Inject constructor(
             delay(1800)
 
             val hasOnboarded = preferencesManager.onboardingComplete.first()
-
-            val isLoggedIn = try {
-                supabaseClient.auth.currentSessionOrNull() != null
-            } catch (e: Exception) {
-                false
-            }
+            val isLoggedIn = authRepository.isLoggedIn()
 
             _uiState.value = SplashUiState.Ready(
                 isLoggedIn = isLoggedIn,
