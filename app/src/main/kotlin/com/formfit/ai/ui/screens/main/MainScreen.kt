@@ -8,7 +8,6 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.formfit.ai.navigation.BottomNavigation
 import com.formfit.ai.navigation.FormFitBottomNav
 import com.formfit.ai.navigation.Routes
 import com.formfit.ai.ui.screens.home.HomeScreen

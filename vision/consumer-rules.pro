@@ -1,0 +1,2 @@
+-keep class com.formfit.ai.vision.** { *; }
+-keep class com.google.mediapipe.** { *; }
