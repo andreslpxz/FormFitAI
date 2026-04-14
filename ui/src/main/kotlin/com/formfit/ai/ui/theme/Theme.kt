@@ -34,33 +34,40 @@ private val DarkColorScheme = darkColorScheme(
 
 private val LightColorScheme = lightColorScheme(
     primary = FormFitGreenDark,
-    onPrimary = FormFitNavy,
+    onPrimary = LightBackground,
     primaryContainer = FormFitGreenLight,
-    onPrimaryContainer = FormFitNavy,
+    onPrimaryContainer = TextPrimaryDark,
     secondary = FormFitBlueDark,
-    onSecondary = FormFitNavy,
-    background = FormFitNavy,
-    onBackground = TextPrimary,
-    surface = FormFitSurface,
-    onSurface = TextPrimary,
+    onSecondary = LightBackground,
+    secondaryContainer = LightSurface2,
+    onSecondaryContainer = TextPrimaryDark,
+    background = LightBackground,
+    onBackground = TextPrimaryDark,
+    surface = LightSurface,
+    onSurface = TextPrimaryDark,
+    surfaceVariant = LightSurface2,
+    onSurfaceVariant = TextSecondaryDark,
+    outline = CardBorderLight,
+    error = ErrorRed,
+    onError = LightBackground
 )
 
 @Composable
 fun FormFitTheme(
-    darkTheme: Boolean = true,
+    darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
-    val colorScheme = DarkColorScheme
+    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
 
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = FormFitNavy.toArgb()
-            window.navigationBarColor = NavBarBackground.toArgb()
+            window.statusBarColor = (if (darkTheme) FormFitNavy else LightBackground).toArgb()
+            window.navigationBarColor = (if (darkTheme) NavBarBackground else LightNavBar).toArgb()
             WindowCompat.getInsetsController(window, view).apply {
-                isAppearanceLightStatusBars = false
-                isAppearanceLightNavigationBars = false
+                isAppearanceLightStatusBars = !darkTheme
+                isAppearanceLightNavigationBars = !darkTheme
             }
         }
     }

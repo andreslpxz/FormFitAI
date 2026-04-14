@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -28,6 +30,8 @@ fun AuthScreen(
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var magicLinkEmail by remember { mutableStateOf("") }
+    var showMagicLinkInput by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.isAuthenticated) {
         if (uiState.isAuthenticated) onAuthSuccess()
@@ -98,14 +102,44 @@ fun AuthScreen(
 
             Spacer(Modifier.height(12.dp))
 
+            if (showMagicLinkInput) {
+                OutlinedTextField(
+                    value = magicLinkEmail,
+                    onValueChange = { magicLinkEmail = it },
+                    label = { Text("Your email") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = FormFitBlue,
+                        focusedLabelColor = FormFitBlue
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(8.dp))
+            }
+
             OutlinedButton(
-                onClick = { viewModel.sendMagicLink() },
+                onClick = {
+                    if (!showMagicLinkInput) {
+                        showMagicLinkInput = true
+                    } else {
+                        viewModel.sendMagicLink(magicLinkEmail)
+                    }
+                },
                 modifier = Modifier.fillMaxWidth().height(52.dp),
                 shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = FormFitBlue),
                 border = androidx.compose.foundation.BorderStroke(1.5.dp, FormFitBlue.copy(0.4f))
             ) {
-                Text("✉️  Send Magic Link", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                if (uiState.isLoading) {
+                    CircularProgressIndicator(color = FormFitBlue, modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                } else {
+                    Text(
+                        if (showMagicLinkInput) "Send Magic Link" else "✉️  Sign in with Magic Link",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
 
             Spacer(Modifier.height(20.dp))

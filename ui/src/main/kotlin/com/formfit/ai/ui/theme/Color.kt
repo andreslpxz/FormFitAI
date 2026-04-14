@@ -28,6 +28,15 @@ val NavBarUnselected = Color(0xFF4A5568)
 
 val CardBorder = Color(0xFF1E2D40)
 
+val LightBackground = Color(0xFFF5F7FC)
+val LightSurface = Color(0xFFFFFFFF)
+val LightSurface2 = Color(0xFFEFF2F8)
+val LightNavBar = Color(0xFFFFFFFF)
+val TextPrimaryDark = Color(0xFF0A0E1A)
+val TextSecondaryDark = Color(0xFF374151)
+val TextMutedDark = Color(0xFF6B7280)
+val CardBorderLight = Color(0xFFD1D9E6)
+
 val SkeletonGreen = Color(0xFF00E676)
 val SkeletonRed = Color(0xFFFF5252)
 val SkeletonAmber = Color(0xFFFFCA28)
