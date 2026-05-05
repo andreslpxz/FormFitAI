@@ -109,13 +109,13 @@ class ProfileViewModel @Inject constructor(
             try {
                 val path = "$userId/avatar.jpg"
                 withContext(Dispatchers.IO) {
-                    supabaseClient.storage.from(AVATARS_BUCKET).upload(path, imageBytes) {
-                        upsert = true
-                    }
+                    supabaseClient.storage.from(AVATARS_BUCKET).upload(path, imageBytes, upsert = true)
                 }
                 val url = supabaseClient.storage.from(AVATARS_BUCKET).publicUrl(path)
-                supabaseClient.auth.updateUser {
-                    data = buildMap { put("avatar_url", url) }
+                supabaseClient.auth.modifyUser {
+                    data {
+                        put("avatar_url", kotlinx.serialization.json.JsonPrimitive(url))
+                    }
                 }
                 _uiState.update { it.copy(avatarUrl = url, isUploadingAvatar = false) }
                 Log.d(TAG, "Avatar uploaded successfully")
@@ -154,8 +154,10 @@ class ProfileViewModel @Inject constructor(
         }
         viewModelScope.launch {
             try {
-                supabaseClient.auth.updateUser {
-                    data = buildMap { put("display_name", newName) }
+                supabaseClient.auth.modifyUser {
+                    data {
+                        put("display_name", kotlinx.serialization.json.JsonPrimitive(newName))
+                    }
                 }
                 _uiState.update { it.copy(displayName = newName, isEditingName = false) }
                 Log.d(TAG, "Display name updated to: $newName")

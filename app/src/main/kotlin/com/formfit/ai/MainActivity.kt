@@ -50,9 +50,15 @@ class MainActivity : ComponentActivity() {
         if (scheme == "formfitai") {
             val fragment = uri.fragment
             if (!fragment.isNullOrBlank()) {
+                val params = fragment.split("&").associate {
+                    val (key, value) = it.split("=", limit = 2)
+                    key to value
+                }
+                val accessToken = params["access_token"] ?: return
+                val refreshToken = params["refresh_token"] ?: return
                 lifecycleScope.launch {
                     runCatching {
-                        supabaseClient.auth.parseFragmentAndImportSession(fragment)
+                        supabaseClient.auth.importAuthToken(accessToken, refreshToken)
                     }
                 }
             }

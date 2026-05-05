@@ -52,7 +52,7 @@ class CameraManager(
         val preview = Preview.Builder()
             .setResolutionSelector(resolutionSelector)
             .build()
-            .also { it.surfaceProvider = previewView.surfaceProvider }
+            .also { it.setSurfaceProvider(previewView.surfaceProvider) }
 
         val imageAnalysisBuilder = ImageAnalysis.Builder()
             .setResolutionSelector(resolutionSelector)

@@ -40,10 +40,10 @@ dependencies {
 
     implementation(libs.datastore.preferences)
 
-    implementation(libs.supabase.gotrue)
-    implementation(libs.supabase.postgrest)
-    implementation(libs.supabase.storage)
-    implementation(libs.supabase.realtime)
+    api(libs.supabase.gotrue)
+    api(libs.supabase.postgrest)
+    api(libs.supabase.storage)
+    api(libs.supabase.realtime)
     implementation(libs.ktor.client.android)
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.content.negotiation)

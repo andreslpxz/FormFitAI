@@ -13,53 +13,53 @@ interface WorkoutSessionDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSession(session: WorkoutSession): Long
 
-    @Query("SELECT * FROM workout_sessions ORDER BY created_at DESC")
+    @Query("SELECT * FROM workout_sessions ORDER BY createdAt DESC")
     fun getAllSessions(): Flow<List<WorkoutSession>>
 
-    @Query("SELECT * FROM workout_sessions WHERE exercise_id = :exerciseId ORDER BY created_at DESC")
+    @Query("SELECT * FROM workout_sessions WHERE exerciseId = :exerciseId ORDER BY createdAt DESC")
     fun getSessionsByExercise(exerciseId: String): Flow<List<WorkoutSession>>
 
     @Query("SELECT * FROM workout_sessions WHERE id = :sessionId")
     suspend fun getSessionById(sessionId: Long): WorkoutSession?
 
     @Query("""
-        SELECT exercise_id, exercise_name, MAX(rep_count) as rep_count, 
-               duration_seconds, avg_form_score, calories_burned, sets_completed,
-               form_issues, synced_to_cloud, created_at, id, user_id
+        SELECT exerciseId, exerciseName, MAX(repCount) as repCount, 
+               durationSeconds, avgFormScore, caloriesBurned, setsCompleted,
+               formIssues, syncedToCloud, createdAt, id, userId
         FROM workout_sessions 
-        GROUP BY exercise_id
+        GROUP BY exerciseId
     """)
     fun getPersonalBests(): Flow<List<WorkoutSession>>
 
-    @Query("SELECT COUNT(*) FROM workout_sessions WHERE created_at >= :since")
+    @Query("SELECT COUNT(*) FROM workout_sessions WHERE createdAt >= :since")
     fun getSessionCountSince(since: Long): Flow<Int>
 
-    @Query("SELECT COUNT(*) FROM workout_sessions WHERE created_at >= :weekStart")
+    @Query("SELECT COUNT(*) FROM workout_sessions WHERE createdAt >= :weekStart")
     suspend fun getWeeklySessionCount(weekStart: Long): Int
 
-    @Query("SELECT * FROM workout_sessions WHERE synced_to_cloud = 0")
+    @Query("SELECT * FROM workout_sessions WHERE syncedToCloud = 0")
     suspend fun getUnsyncedSessions(): List<WorkoutSession>
 
-    @Query("UPDATE workout_sessions SET synced_to_cloud = 1 WHERE id = :sessionId")
+    @Query("UPDATE workout_sessions SET syncedToCloud = 1 WHERE id = :sessionId")
     suspend fun markAsSynced(sessionId: Long)
 
-    @Query("SELECT * FROM workout_sessions ORDER BY created_at DESC LIMIT 7")
+    @Query("SELECT * FROM workout_sessions ORDER BY createdAt DESC LIMIT 7")
     fun getRecentSessions(): Flow<List<WorkoutSession>>
 
-    @Query("SELECT * FROM workout_sessions WHERE created_at >= :startMs AND created_at <= :endMs ORDER BY created_at ASC")
+    @Query("SELECT * FROM workout_sessions WHERE createdAt >= :startMs AND createdAt <= :endMs ORDER BY createdAt ASC")
     fun getSessionsByDateRange(startMs: Long, endMs: Long): Flow<List<WorkoutSession>>
 
-    @Query("SELECT * FROM workout_sessions ORDER BY created_at DESC LIMIT 30")
+    @Query("SELECT * FROM workout_sessions ORDER BY createdAt DESC LIMIT 30")
     fun getLast30Sessions(): Flow<List<WorkoutSession>>
 
     @Query("""
-        SELECT exercise_id, exercise_name, AVG(avg_form_score) as avg_form_score,
-               MAX(rep_count) as rep_count, SUM(calories_burned) as calories_burned,
-               MAX(duration_seconds) as duration_seconds, MAX(sets_completed) as sets_completed,
-               form_issues, synced_to_cloud, MAX(created_at) as created_at, id, user_id
+        SELECT exerciseId, exerciseName, AVG(avgFormScore) as avgFormScore,
+               MAX(repCount) as repCount, SUM(caloriesBurned) as caloriesBurned,
+               MAX(durationSeconds) as durationSeconds, MAX(setsCompleted) as setsCompleted,
+               formIssues, syncedToCloud, MAX(createdAt) as createdAt, id, userId
         FROM workout_sessions
-        GROUP BY exercise_id
-        ORDER BY avg_form_score DESC
+        GROUP BY exerciseId
+        ORDER BY avgFormScore DESC
         LIMIT 6
     """)
     fun getFormScoreByExercise(): Flow<List<WorkoutSession>>
