@@ -8,10 +8,12 @@ import com.formfit.ai.core.data.ProfileRepository
 import com.formfit.ai.core.data.SubscriptionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.jan.supabase.gotrue.SessionStatus
+import android.util.Log
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -42,6 +44,10 @@ class AppViewModel @Inject constructor(
                 else -> AppAuthState.Initializing
             }
         }
+        .catch { e ->
+            Log.e("AppViewModel", "Error collecting session status", e)
+            emit(AppAuthState.Unauthenticated)
+        }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.Eagerly,
@@ -53,15 +59,27 @@ class AppViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            _hasOnboarded.value = preferencesManager.onboardingComplete.first()
+            try {
+                _hasOnboarded.value = preferencesManager.onboardingComplete.first()
+            } catch (e: Exception) {
+                Log.e("AppViewModel", "Error loading onboarding state", e)
+            }
         }
 
         viewModelScope.launch {
-            authRepository.sessionStatusFlow.collect { status ->
-                if (status is SessionStatus.Authenticated) {
-                    ensureProfileExists()
-                    subscriptionRepository.refreshSubscription()
+            try {
+                authRepository.sessionStatusFlow.collect { status ->
+                    if (status is SessionStatus.Authenticated) {
+                        try {
+                            ensureProfileExists()
+                            subscriptionRepository.refreshSubscription()
+                        } catch (e: Exception) {
+                            Log.e("AppViewModel", "Error during post-auth setup", e)
+                        }
+                    }
                 }
+            } catch (e: Exception) {
+                Log.e("AppViewModel", "Error collecting session status", e)
             }
         }
     }

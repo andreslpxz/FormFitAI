@@ -35,8 +35,16 @@ class SplashViewModel @Inject constructor(
         viewModelScope.launch {
             delay(1800)
 
-            val hasOnboarded = preferencesManager.onboardingComplete.first()
-            val isLoggedIn = authRepository.isLoggedIn()
+            val hasOnboarded = try {
+                preferencesManager.onboardingComplete.first()
+            } catch (e: Exception) {
+                false
+            }
+            val isLoggedIn = try {
+                authRepository.isLoggedIn()
+            } catch (e: Exception) {
+                false
+            }
 
             _uiState.value = SplashUiState.Ready(
                 isLoggedIn = isLoggedIn,

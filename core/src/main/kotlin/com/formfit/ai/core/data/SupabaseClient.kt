@@ -6,6 +6,7 @@ import io.github.jan.supabase.gotrue.Auth
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.realtime.Realtime
 import io.github.jan.supabase.storage.Storage
+import io.ktor.client.engine.android.Android
 
 object SupabaseClientFactory {
     const val SUPABASE_URL = "https://tnjahnkoeziadabetlvx.supabase.co"
@@ -18,11 +19,12 @@ object SupabaseClientFactory {
             supabaseUrl = SUPABASE_URL,
             supabaseKey = SUPABASE_ANON_KEY
         ) {
+            httpEngine = Android.create()
             install(Auth) {
                 if (sessionManager != null) {
                     this.sessionManager = sessionManager
                 }
-                alwaysAutoRefresh = true
+                alwaysAutoRefresh = false
                 autoLoadFromStorage = true
             }
             install(Postgrest)
