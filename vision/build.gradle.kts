@@ -39,7 +39,7 @@ dependencies {
     implementation(libs.camerax.lifecycle)
     implementation(libs.camerax.view)
 
-    implementation(libs.mediapipe.tasks.vision)
+    api(libs.mediapipe.tasks.vision)
 
     implementation(libs.kotlinx.coroutines.android)
 }

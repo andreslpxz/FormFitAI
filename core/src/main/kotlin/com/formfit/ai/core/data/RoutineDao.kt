@@ -21,10 +21,10 @@ interface RoutineDao {
     @Delete
     suspend fun deleteRoutine(routine: Routine)
 
-    @Query("SELECT * FROM routines ORDER BY created_at DESC")
+    @Query("SELECT * FROM routines ORDER BY createdAt DESC")
     fun getAllRoutines(): Flow<List<Routine>>
 
-    @Query("SELECT * FROM routines WHERE is_preset = 0 ORDER BY created_at DESC")
+    @Query("SELECT * FROM routines WHERE isPreset = 0 ORDER BY createdAt DESC")
     fun getUserRoutines(): Flow<List<Routine>>
 
     @Query("SELECT * FROM routines WHERE id = :routineId")

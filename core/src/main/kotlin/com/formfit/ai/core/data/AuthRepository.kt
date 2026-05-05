@@ -4,6 +4,7 @@ import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.gotrue.SessionStatus
 import io.github.jan.supabase.gotrue.auth
 import io.github.jan.supabase.gotrue.providers.Google
+import io.github.jan.supabase.gotrue.providers.builtin.IDToken
 import io.github.jan.supabase.gotrue.providers.builtin.Email
 import io.github.jan.supabase.gotrue.providers.builtin.OTP
 import kotlinx.coroutines.flow.Flow
@@ -54,8 +55,9 @@ class AuthRepository @Inject constructor(
     }
 
     suspend fun signInWithGoogle(idToken: String, rawNonce: String): Result<Unit> = try {
-        supabaseClient.auth.signInWith(Google) {
+        supabaseClient.auth.signInWith(IDToken) {
             this.idToken = idToken
+            this.provider = Google
             this.nonce = rawNonce
         }
         Result.success(Unit)
@@ -66,7 +68,6 @@ class AuthRepository @Inject constructor(
     suspend fun sendMagicLink(email: String): Result<Unit> = try {
         supabaseClient.auth.signInWith(OTP) {
             this.email = email
-            this.redirectTo = DEEP_LINK_CALLBACK
         }
         Result.success(Unit)
     } catch (e: Exception) {

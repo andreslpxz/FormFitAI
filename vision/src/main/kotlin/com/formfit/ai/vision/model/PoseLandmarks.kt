@@ -1,10 +1,11 @@
 package com.formfit.ai.vision.model
 
+import com.google.mediapipe.tasks.components.containers.Landmark
 import com.google.mediapipe.tasks.components.containers.NormalizedLandmark
 
 data class PoseLandmarkResult(
     val landmarks: List<NormalizedLandmark>,
-    val worldLandmarks: List<NormalizedLandmark>,
+    val worldLandmarks: List<Landmark>,
     val imageWidth: Int,
     val imageHeight: Int,
     val timestamp: Long = System.currentTimeMillis()
